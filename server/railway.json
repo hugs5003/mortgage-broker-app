@@ -1,0 +1,6 @@
+{
+  "name": "mortgage-broker-api",
+  "runtime": "nodejs",
+  "builder": "heroku.buildpacks",
+  "startCommand": "npm run build && npm start"
+}

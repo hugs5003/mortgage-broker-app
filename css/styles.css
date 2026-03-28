@@ -1,0 +1,229 @@
+/* ============================================================
+   Custom styles beyond Tailwind
+   ============================================================ */
+
+/* Smooth step transitions */
+.wizard-step {
+  display: none;
+  animation: fadeIn 0.35s ease-in-out;
+}
+
+.wizard-step.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2563eb;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+  transition: transform 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2563eb;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
+/* Tooltip styling */
+.tooltip-trigger {
+  position: relative;
+  cursor: help;
+}
+
+.tooltip-content {
+  display: none;
+  position: absolute;
+  z-index: 50;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 320px;
+  padding: 12px 16px;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-trigger:hover .tooltip-content,
+.tooltip-trigger:focus .tooltip-content {
+  display: block;
+}
+
+.tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+}
+
+/* Card hover */
+.deal-card {
+  transition: all 0.2s ease;
+}
+
+.deal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+/* Comparison checkbox */
+.compare-check {
+  transition: all 0.15s ease;
+}
+
+.compare-check.selected {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+/* Progress bar */
+.progress-step {
+  transition: all 0.3s ease;
+}
+
+.progress-step.completed .step-circle {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.progress-step.active .step-circle {
+  border-color: #2563eb;
+  color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.progress-line {
+  transition: background 0.3s ease;
+}
+
+.progress-line.completed {
+  background: #2563eb;
+}
+
+/* Learn panel accordion */
+.learn-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.35s ease;
+}
+
+.learn-panel.open {
+  max-height: 600px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Comparison panel slide */
+.comparison-panel {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Priority chips */
+.priority-chip {
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.priority-chip.selected {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Number input spin button hide */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Pulse animation for recommended badge */
+@keyframes pulse-blue {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+}
+
+.recommended-badge {
+  animation: pulse-blue 2s infinite;
+}
+
+/* Chart container */
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-height: 300px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

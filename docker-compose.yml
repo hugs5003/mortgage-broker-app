@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mortgage_db
+    environment:
+      POSTGRES_USER: mortgage_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mortgage_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mortgage_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: mortgage_api
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://mortgage_user:password@postgres:5432/mortgage_db
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: mortgage_db
+      DATABASE_USER: mortgage_user
+      DATABASE_PASSWORD: password
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production
+      CORS_ORIGIN: http://localhost:3000
+      MORTGAGE_DATA_PROVIDER: mock
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./server/src:/app/src
+    command: npm run dev
+
+  # Frontend (optional - normally you'd run this separately with npm run dev)
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: mortgage_web
+    environment:
+      VITE_API_URL: http://localhost:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./client/src:/app/src
+
+volumes:
+  postgres_data:
+    driver: local
