@@ -1,4 +1,4 @@
-import { Pool, Client } from 'pg';
+import { Pool } from 'pg';
 import path from 'path';
 import fs from 'fs';
 
@@ -13,7 +13,7 @@ const pool = new Pool({
 });
 
 // Error handling
-pool.on('error', (err) => {
+pool.on('error', (err: Error) => {
   console.error('Unexpected error on idle client', err);
 });
 
@@ -32,7 +32,11 @@ export async function initializeDatabase() {
 
 // Run migrations
 export async function runMigrations() {
-  const migrationsDir = path.join(__dirname, '../migrations');
+  const bundledMigrationsDir = path.join(__dirname, '../migrations');
+  const projectMigrationsDir = path.join(process.cwd(), 'migrations');
+  const migrationsDir = fs.existsSync(bundledMigrationsDir)
+    ? bundledMigrationsDir
+    : projectMigrationsDir;
   const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
 
   const client = await pool.connect();

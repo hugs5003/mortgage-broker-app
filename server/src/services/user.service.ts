@@ -1,8 +1,8 @@
 import pool from '@/database/connection';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { User, UserPublic, AuthRequest, AuthResponse } from '@/types';
+import { UserPublic, AuthResponse } from '@/types';
 
 export class UserService {
   /**
@@ -130,8 +130,11 @@ export class UserService {
    * Generate JWT token
    */
   private static generateToken(user: UserPublic): string {
-    return jwt.sign(user, process.env.JWT_SECRET || 'secret', {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
+    const secret = process.env.JWT_SECRET || 'secret';
+    const options: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+    };
+
+    return jwt.sign(user, secret, options);
   }
 }

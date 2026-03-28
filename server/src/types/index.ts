@@ -131,6 +131,8 @@ export interface GetDealsRequest {
   deposit: number;
   termYears: number;
   grossIncome: number;
+  purchaseType?: 'firstTime' | 'movingHome' | 'remortgage' | 'buyToLet' | 'standard';
+  monthlyOutgoings?: number;
   priorities?: string[];
   riskTolerance?: number;
 }
