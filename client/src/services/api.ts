@@ -1,8 +1,8 @@
 import axios from 'axios'
-import type { MortgageDeal, User, UserProfile } from '../types'
+import type { FeedbackSubmission, LeadSubmission, MortgageDeal, UserProfile } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true'
+const USE_CLIENT_MOCK_DEALS = import.meta.env.VITE_USE_CLIENT_MOCK_DEALS === 'true'
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
@@ -145,46 +145,16 @@ function normalizeDealsResponse(payload: unknown): MortgageDeal[] {
 }
 
 export const authApi = {
-  login: async (email: string, password: string) => {
-    if (USE_MOCK_DATA) {
-      const user: User = {
-        id: 'mock-user-1',
-        email,
-        name: 'Demo User',
-        role: 'user',
-      }
-      return { user, token: 'mock-token' }
-    }
-    return api.post('/auth/login', { email, password }).then((r) => r.data)
-  },
-  register: async (email: string, name: string, password: string) => {
-    if (USE_MOCK_DATA) {
-      const user: User = {
-        id: 'mock-user-1',
-        email,
-        name,
-        role: 'user',
-      }
-      return { user, token: 'mock-token' }
-    }
-    return api.post('/auth/register', { email, name, password }).then((r) => r.data)
-  },
-  me: async () => {
-    if (USE_MOCK_DATA) {
-      return {
-        id: 'mock-user-1',
-        email: 'demo@example.com',
-        name: 'Demo User',
-        role: 'user',
-      }
-    }
-    return api.get('/auth/me').then((r) => r.data)
-  },
+  login: (email: string, password: string) =>
+    api.post('/auth/login', { email, password }).then((r) => r.data),
+  register: (email: string, name: string, password: string) =>
+    api.post('/auth/register', { email, name, password }).then((r) => r.data),
+  me: () => api.get('/auth/me').then((r) => r.data),
 }
 
 export const dealsApi = {
   calculate: async (profile: UserProfile) => {
-    if (USE_MOCK_DATA) {
+    if (USE_CLIENT_MOCK_DEALS) {
       return buildMockDeals(profile)
     }
 
@@ -196,18 +166,17 @@ export const dealsApi = {
       return buildMockDeals(profile)
     }
   },
-  getScenarios: async () => {
-    if (USE_MOCK_DATA) {
-      return []
-    }
-    return api.get('/deals/scenarios').then((r) => r.data)
-  },
-  saveScenario: async (name: string, userProfile: UserProfile) => {
-    if (USE_MOCK_DATA) {
-      return { id: `mock-scenario-${Date.now()}`, name, userProfile }
-    }
-    return api.post('/deals/scenarios', { name, userProfile }).then((r) => r.data)
-  },
+  getScenarios: () => api.get('/deals/scenarios').then((r) => r.data),
+  saveScenario: (name: string, userProfile: UserProfile) =>
+    api.post('/deals/scenarios', { name, userProfile }).then((r) => r.data),
+}
+
+export const leadApi = {
+  submit: (data: LeadSubmission) => api.post('/leads', data).then((r) => r.data),
+}
+
+export const feedbackApi = {
+  submit: (data: FeedbackSubmission) => api.post('/feedback', data).then((r) => r.data),
 }
 
 export default api

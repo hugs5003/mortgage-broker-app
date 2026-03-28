@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import type { UserProfile, MortgageDeal, User } from '../types'
 
+interface Utm {
+  source: string | null
+  medium: string | null
+  campaign: string | null
+}
+
 interface AppStore {
   user: User | null
   token: string | null
@@ -18,6 +24,14 @@ interface AppStore {
   setDeals: (deals: MortgageDeal[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+
+  utm: Utm
+  setUtm: (utm: Utm) => void
+
+  leadSubmitted: boolean
+  setLeadSubmitted: (v: boolean) => void
+  feedbackSubmitted: boolean
+  setFeedbackSubmitted: (v: boolean) => void
 }
 
 const defaultProfile: UserProfile = {
@@ -54,4 +68,12 @@ export const useStore = create<AppStore>((set) => ({
   setDeals: (deals) => set({ deals }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+
+  utm: { source: null, medium: null, campaign: null },
+  setUtm: (utm) => set({ utm }),
+
+  leadSubmitted: false,
+  setLeadSubmitted: (v) => set({ leadSubmitted: v }),
+  feedbackSubmitted: false,
+  setFeedbackSubmitted: (v) => set({ feedbackSubmitted: v }),
 }))

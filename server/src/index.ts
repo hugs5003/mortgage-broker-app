@@ -10,6 +10,8 @@ import { dealsRouter } from '@/routes/deals';
 import { financialRouter } from '@/routes/financial';
 import { brokerRouter } from '@/routes/broker';
 import { shareRouter } from '@/routes/share';
+import { leadsRouter } from '@/routes/leads';
+import { feedbackRouter } from '@/routes/feedback';
 
 dotenv.config();
 
@@ -39,6 +41,8 @@ app.use('/api/deals', dealsRouter);
 app.use('/api/financial', financialRouter);
 app.use('/api/broker', brokerRouter);
 app.use('/api/share', shareRouter);
+app.use('/api/leads', leadsRouter);
+app.use('/api/feedback', feedbackRouter);
 
 // Health check
 app.get('/health', (req, res) => {

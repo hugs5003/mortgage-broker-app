@@ -38,3 +38,22 @@ export interface User {
   name: string
   role: string
 }
+
+export interface LeadSubmission {
+  email: string
+  consent: boolean
+  source?: string
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  purchase_type?: string
+}
+
+export interface FeedbackSubmission {
+  rating: number
+  comment?: string
+  email?: string
+  purchase_type?: string
+  utm_source?: string | null
+  utm_campaign?: string | null
+}
