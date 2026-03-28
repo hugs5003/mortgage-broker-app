@@ -140,3 +140,173 @@ export interface ErrorResponse {
   statusCode: number;
   timestamp: string;
 }
+
+// Financial optimisation types
+export interface CompoundGrowthResult {
+  finalValue: number;
+  totalContributed: number;
+  totalGrowth: number;
+  yearByYear: Array<{
+    year: number;
+    balance: number;
+    contributed: number;
+    growth: number;
+    realValue?: number;
+  }>;
+}
+
+export interface OverpayVsInvestResult {
+  overpayment: {
+    interestSaved: number;
+    yearsSaved: number;
+    totalPaidWithOverpay: number;
+    totalPaidWithout: number;
+  };
+  investment: {
+    finalValue: number;
+    totalContributed: number;
+    totalGrowth: number;
+  };
+  netBenefit: number;
+  breakEvenRate: number;
+  verdict: string;
+}
+
+export interface ISAComparisonResult {
+  grossReturn: number;
+  taxPaid: number;
+  netReturn: number;
+}
+
+export interface SavingsTimelineResult {
+  monthsToTarget: number;
+  yearsToTarget: number;
+  totalContributed: number;
+  interestEarned: number;
+  monthByMonth: Array<{ month: number; balance: number }>;
+}
+
+export interface FirstHomeSavingsResult {
+  targetDeposit: number;
+  monthsToTarget: number;
+  yearsToTarget: number;
+  withLISABonus: number;
+  timeline: SavingsTimelineResult;
+}
+
+export interface RetirementProjectionResult {
+  projectedPot: number;
+  projectedRealPot: number;
+  annualIncomeAt4Pct: number;
+  monthlyIncomeAt4Pct: number;
+  shortfallVsTarget: number;
+  yearByYear: Array<{
+    year: number;
+    age: number;
+    balance: number;
+    contributed: number;
+    growth: number;
+    realValue: number;
+  }>;
+}
+
+export interface RetirementGapResult {
+  annualShortfall: number;
+  monthlyExtraSavingNeeded: number;
+  yearsOfIncomeAvailable: number;
+}
+
+// Broker session types
+export interface BrokerSession {
+  id: string;
+  brokerId: string;
+  clientName: string;
+  clientEmail?: string;
+  status: 'draft' | 'published' | 'viewed' | 'expired';
+  propertyValue: number;
+  deposit: number;
+  purchaseType: string;
+  propertyType?: string;
+  leasehold: boolean;
+  grossIncome: number;
+  jointApplication: boolean;
+  secondIncome: number;
+  employmentStatus?: string;
+  monthlyOutgoings: number;
+  creditProfile?: string;
+  age?: number;
+  termYears: number;
+  priorities: string[];
+  overpaymentPlans: boolean;
+  overpaymentAmount: number;
+  movingWithin5Years: boolean;
+  riskTolerance: number;
+  savingsAmount: number;
+  brokerNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt?: Date;
+}
+
+export interface BrokerDealHighlight {
+  id: string;
+  sessionId: string;
+  dealId: string;
+  highlightType: 'recommended' | 'alternative' | 'avoid';
+  brokerComment?: string;
+  displayOrder: number;
+  createdAt: Date;
+}
+
+export interface ShareLink {
+  id: string;
+  session_id: string;
+  token: string;
+  isActive: boolean;
+  viewCount: number;
+  lastViewedAt?: Date;
+  createdAt: Date;
+  expiresAt?: Date;
+}
+
+export interface ConsumerOverride {
+  id: string;
+  shareLinkId: string;
+  overrideData: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface CreateBrokerSessionRequest {
+  clientName: string;
+  clientEmail?: string;
+  propertyValue: number;
+  deposit: number;
+  purchaseType: string;
+  propertyType?: string;
+  leasehold?: boolean;
+  grossIncome: number;
+  jointApplication?: boolean;
+  secondIncome?: number;
+  employmentStatus?: string;
+  monthlyOutgoings?: number;
+  creditProfile?: string;
+  age?: number;
+  termYears: number;
+  priorities?: string[];
+  overpaymentPlans?: boolean;
+  overpaymentAmount?: number;
+  movingWithin5Years?: boolean;
+  riskTolerance?: number;
+  savingsAmount?: number;
+  brokerNotes?: string;
+}
+
+export interface PublishSessionRequest {
+  sessionId: string;
+}
+
+export interface ShareLinkResponse {
+  session: BrokerSession;
+  highlights: BrokerDealHighlight[];
+  shareLink: ShareLink;
+}

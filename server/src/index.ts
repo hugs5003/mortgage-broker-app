@@ -7,6 +7,9 @@ import { initializeDatabase, runMigrations } from '@/database/connection';
 import { errorHandler, requestLogger } from '@/middleware/auth';
 import { authRouter } from '@/routes/auth';
 import { dealsRouter } from '@/routes/deals';
+import { financialRouter } from '@/routes/financial';
+import { brokerRouter } from '@/routes/broker';
+import { shareRouter } from '@/routes/share';
 
 dotenv.config();
 
@@ -33,6 +36,9 @@ app.use(limiter);
 // ===== Routes =====
 app.use('/api/auth', authRouter);
 app.use('/api/deals', dealsRouter);
+app.use('/api/financial', financialRouter);
+app.use('/api/broker', brokerRouter);
+app.use('/api/share', shareRouter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -58,6 +64,28 @@ app.get('/api', (req, res) => {
         'POST /api/deals/scenarios': 'Save a mortgage scenario',
         'GET /api/deals/scenarios': 'Get user saved scenarios',
         'DELETE /api/deals/scenarios/:id': 'Delete a scenario',
+      },
+      financial: {
+        'POST /api/financial/compound-growth': 'Compound growth projection',
+        'POST /api/financial/overpay-vs-invest': 'Overpay mortgage vs invest comparison',
+        'POST /api/financial/isa-comparison': 'ISA vs non-ISA tax comparison',
+        'POST /api/financial/savings-timeline': 'Savings goal timeline',
+        'POST /api/financial/first-home': 'First home savings with optional LISA',
+        'POST /api/financial/retirement-projection': 'Retirement pot projection',
+        'POST /api/financial/retirement-gap': 'Retirement income gap analysis',
+      },
+      broker: {
+        'POST /api/broker/sessions': 'Create a broker session (broker only)',
+        'GET /api/broker/sessions': 'List broker sessions (broker only)',
+        'GET /api/broker/sessions/:id': 'Get a broker session (broker only)',
+        'PUT /api/broker/sessions/:id': 'Update a broker session (broker only)',
+        'POST /api/broker/sessions/:id/publish': 'Publish session + generate share link (broker only)',
+        'POST /api/broker/sessions/:id/highlights': 'Add deal highlight (broker only)',
+        'DELETE /api/broker/sessions/:id/highlights/:dealId': 'Remove deal highlight (broker only)',
+      },
+      share: {
+        'GET /api/share/:token': 'Get shared session data (public)',
+        'POST /api/share/:token/override': 'Save consumer what-if override (public)',
       },
     },
   });
