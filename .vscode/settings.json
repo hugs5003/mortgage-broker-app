@@ -4,6 +4,8 @@
         "git commit": true,
         "git push": true,
         "uniq": true,
-        "brew": true
+        "brew": true,
+        "command": true,
+        "git -C '/Users/hs/Desktop/Mortgage": true
     }
 }

@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useStore } from '../store'
+import { leadApi, feedbackApi } from '../services/api'
 import type { MortgageDeal } from '../types'
 
 function formatCurrency(n: number) {
@@ -10,7 +12,61 @@ function formatCurrency(n: number) {
 }
 
 export function DealResults() {
-  const { deals } = useStore()
+  const { deals, utm, userProfile, leadSubmitted, setLeadSubmitted, feedbackSubmitted, setFeedbackSubmitted } = useStore()
+
+  const [email, setEmail] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [leadLoading, setLeadLoading] = useState(false)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+
+  const handleLeadSubmit = async () => {
+    if (!email || !consent) return
+    setLeadLoading(true)
+    try {
+      await leadApi.submit({
+        email,
+        consent,
+        source: 'results_page',
+        utm_source: utm.source,
+        utm_medium: utm.medium,
+        utm_campaign: utm.campaign,
+        purchase_type: userProfile.purchaseType,
+      })
+      setLeadSubmitted(true)
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'lead_captured', { event_category: 'engagement', method: 'results_page' })
+      }
+    } catch {
+      // Silently fail — do not interrupt the user experience
+    } finally {
+      setLeadLoading(false)
+    }
+  }
+
+  const handleFeedbackSubmit = async () => {
+    if (rating === 0) return
+    setFeedbackLoading(true)
+    try {
+      await feedbackApi.submit({
+        rating,
+        comment: comment || undefined,
+        email: email || undefined,
+        purchase_type: userProfile.purchaseType,
+        utm_source: utm.source,
+        utm_campaign: utm.campaign,
+      })
+      setFeedbackSubmitted(true)
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'feedback_submitted', { event_category: 'engagement', value: rating })
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
 
   if (deals.length === 0) {
     return (
@@ -78,6 +134,99 @@ export function DealResults() {
           )}
         </div>
       ))}
+
+      {/* ── Email capture ───────────────────────────────────────────── */}
+      <div className="bg-blue-50 rounded-xl p-6 border border-blue-200 mt-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">Get these results by email</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          We’ll also remind you when a better deal becomes available — so you never miss a saving.
+        </p>
+
+        {leadSubmitted ? (
+          <div className="flex items-center gap-2 text-green-700 font-semibold">
+            <span>✓</span>
+            <span>Done! We’ll be in touch.</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded text-blue-600 flex-shrink-0"
+              />
+              <span>
+                I agree to receive mortgage deal updates and reminders by email. I can unsubscribe
+                at any time.
+              </span>
+            </label>
+            <button
+              onClick={handleLeadSubmit}
+              disabled={!email || !consent || leadLoading}
+              className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {leadLoading ? 'Saving…' : 'Send me my results →'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Feedback ────────────────────────────────────────────────── */}
+      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">Was this helpful?</h3>
+        <p className="text-sm text-gray-500 mb-4">Your feedback helps us improve for everyone.</p>
+
+        {feedbackSubmitted ? (
+          <div className="flex items-center gap-2 text-green-700 font-semibold">
+            <span>✓</span>
+            <span>Thank you!</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  aria-label={`Rate ${star} stars`}
+                  className={`text-3xl transition-transform hover:scale-110 ${
+                    star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+
+            {rating > 0 && (
+              <>
+                <textarea
+                  placeholder="Any comments? (optional)"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <button
+                  onClick={handleFeedbackSubmit}
+                  disabled={feedbackLoading}
+                  className="bg-gray-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 disabled:opacity-50 transition-colors"
+                >
+                  {feedbackLoading ? 'Sending…' : 'Submit feedback'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

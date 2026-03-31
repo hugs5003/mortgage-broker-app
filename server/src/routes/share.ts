@@ -28,7 +28,7 @@ shareRouter.get('/:token', async (req: Request, res: Response) => {
 shareRouter.post('/:token/override', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    const { overrideData } = req.body;
+    const overrideData = req.body?.overrideData ?? req.body?.override_data;
 
     if (!token || token.length !== 64) {
       return res.status(400).json({ error: 'Invalid share token' });

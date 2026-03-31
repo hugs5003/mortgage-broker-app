@@ -236,8 +236,7 @@ const FinancialCalc = {
   // ----------------------------------------------------------
   firstHomeSavings(targetPropertyValue, targetDepositPercent, currentSavings, monthlySaving, annualReturnRate, lifetimeISABonus) {
     var targetDeposit = targetPropertyValue * (targetDepositPercent / 100);
-    var effectiveTarget = lifetimeISABonus ? targetDeposit : targetDeposit;
-    var timeline = this.savingsTimeline(effectiveTarget, currentSavings, monthlySaving, annualReturnRate);
+    var timeline = this.savingsTimeline(targetDeposit, currentSavings, monthlySaving, annualReturnRate);
 
     var lisaBonusTotal = 0;
     if (lifetimeISABonus) {

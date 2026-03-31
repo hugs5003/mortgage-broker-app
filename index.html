@@ -23,9 +23,67 @@
 <body class="bg-gray-50 font-sans text-gray-900 min-h-screen">
 
   <!-- ====================================================== -->
+  <!-- ACCESS GATE — friends-only access code                 -->
+  <!-- ====================================================== -->
+  <div id="access-gate" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12 max-w-md w-full text-center">
+      <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Mortgage Optimiser</h1>
+      <p class="text-gray-500 text-sm mb-8">This is a private preview. Enter your access code to continue.</p>
+      <div class="mb-4">
+        <input id="access-code-input" type="password" placeholder="Enter access code"
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+      </div>
+      <div id="access-error" class="hidden text-red-600 text-sm mb-4">Incorrect code. Try again.</div>
+      <button id="access-submit-btn"
+        class="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+        Enter &rarr;
+      </button>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- ROLE CHOOSER — Broker or Consumer                      -->
+  <!-- ====================================================== -->
+  <div id="role-chooser" style="display:none;" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50 px-4">
+    <div class="max-w-2xl w-full text-center">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome to Mortgage Optimiser</h1>
+      <p class="text-gray-500 mb-10">How would you like to use the app?</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Consumer card -->
+        <button id="choose-consumer"
+          class="group bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-500 shadow-sm hover:shadow-xl transition-all p-8 text-left">
+          <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-5 group-hover:bg-blue-600 transition-colors">
+            <svg class="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900 mb-2">I'm looking for a mortgage</h2>
+          <p class="text-sm text-gray-500">Compare deals, run scenarios, and find the best mortgage for your situation.</p>
+        </button>
+        <!-- Broker card -->
+        <button id="choose-broker"
+          class="group bg-white rounded-2xl border-2 border-gray-200 hover:border-indigo-500 shadow-sm hover:shadow-xl transition-all p-8 text-left">
+          <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mb-5 group-hover:bg-indigo-600 transition-colors">
+            <svg class="w-7 h-7 text-indigo-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900 mb-2">I'm a mortgage broker</h2>
+          <p class="text-sm text-gray-500">Build recommendations for clients, highlight deals, and share a personalised link.</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
   <!-- HEADER -->
   <!-- ====================================================== -->
-  <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+  <header id="app-header" class="bg-white border-b border-gray-200 sticky top-0 z-40" style="display:none;">
     <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -69,7 +127,7 @@
   <!-- ====================================================== -->
   <!-- PROGRESS BAR -->
   <!-- ====================================================== -->
-  <div class="max-w-3xl mx-auto px-4 py-6">
+  <div id="progress-bar-container" class="max-w-3xl mx-auto px-4 py-6" style="display:none;">
     <div class="flex items-center justify-between">
       <!-- Step 1 -->
       <div id="progress-step-1" class="progress-step flex flex-col items-center">
@@ -100,7 +158,7 @@
   <!-- ====================================================== -->
   <!-- WIZARD CONTAINER -->
   <!-- ====================================================== -->
-  <main class="max-w-3xl mx-auto px-4 pb-32">
+  <main id="app-main" class="max-w-3xl mx-auto px-4 pb-32" style="display:none;">
 
     <!-- ================================================== -->
     <!-- STEP 1: Property & Purchase Details               -->
@@ -496,6 +554,15 @@
           </div>
         </div>
       </div>
+
+      <!-- Financial Tools CTA -->
+      <div id="financial-cta" class="hidden mt-8 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-8 text-white text-center">
+        <h3 class="text-2xl font-bold mb-2">You've found your mortgage — now optimise the rest</h3>
+        <p class="text-blue-100 mb-6">See how overpaying, investing, or saving differently could change your financial future</p>
+        <button id="explore-finances-btn" class="px-8 py-3 bg-white text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-lg">
+          Explore My Finances →
+        </button>
+      </div>
     </div>
 
   </main>
@@ -797,6 +864,361 @@
   </div>
 
   <!-- ====================================================== -->
+  <!-- SHARE VIEW (consumer sees broker's recommendation) -->
+  <!-- ====================================================== -->
+  <div id="share-view" class="max-w-5xl mx-auto px-4 py-6" style="display:none;">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
+
+      <!-- Header area -->
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-1">Your Mortgage Recommendation</h2>
+        <p class="text-gray-500 text-sm">Prepared by <span id="share-broker-name" class="font-medium text-gray-700"></span></p>
+      </div>
+
+      <!-- Broker message panel -->
+      <div id="share-broker-message" class="broker-message-card mb-6" style="display:none;">
+        <p id="share-broker-notes" class="text-gray-700"></p>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="share-summary-bar mb-8" id="share-summary-bar">
+        <div>
+          <div class="text-xs text-gray-500">Property Value</div>
+          <div class="text-lg font-bold" id="share-property-value">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500">Loan Amount</div>
+          <div class="text-lg font-bold" id="share-loan-amount">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500">LTV</div>
+          <div class="text-lg font-bold" id="share-ltv">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500">Deposit</div>
+          <div class="text-lg font-bold text-green-600" id="share-deposit">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500">Term</div>
+          <div class="text-lg font-bold" id="share-term">—</div>
+        </div>
+      </div>
+
+      <!-- What-If sidebar panel -->
+      <div class="mb-6">
+        <button id="whatif-toggle-btn" class="whatif-toggle-btn" onclick="App.toggleWhatIfPanel()">
+          Adjust Scenario ▾
+        </button>
+        <div id="whatif-panel">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label for="whatif-propertyValue" class="block text-sm font-semibold text-gray-700 mb-1">Property Value</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="whatif-propertyValue"
+                  class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-sm font-medium" />
+              </div>
+            </div>
+            <div>
+              <label for="whatif-deposit" class="block text-sm font-semibold text-gray-700 mb-1">Deposit</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="whatif-deposit"
+                  class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-sm font-medium" />
+              </div>
+            </div>
+            <div>
+              <label for="whatif-grossIncome" class="block text-sm font-semibold text-gray-700 mb-1">Gross Annual Income</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="whatif-grossIncome"
+                  class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-sm font-medium" />
+              </div>
+            </div>
+            <div>
+              <label for="whatif-termYears" class="block text-sm font-semibold text-gray-700 mb-1">Term (years)</label>
+              <input type="number" id="whatif-termYears" min="5" max="35"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-sm font-medium" />
+            </div>
+            <div>
+              <label for="whatif-monthlyOutgoings" class="block text-sm font-semibold text-gray-700 mb-1">Monthly Commitments</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="whatif-monthlyOutgoings"
+                  class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-sm font-medium" />
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button id="whatif-recalculate"
+              class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+              Recalculate
+            </button>
+            <button id="whatif-reset"
+              class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+              Reset to Original
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deal cards area -->
+      <div id="share-results" class="space-y-4 mb-6"></div>
+
+      <!-- Other Available Deals section header -->
+      <div id="other-deals-header" class="other-deals-section mb-4" style="display:none;">
+        <h3 class="text-lg font-semibold text-gray-500">Other Available Deals</h3>
+      </div>
+      <div id="share-other-results" class="space-y-4 mb-8"></div>
+
+      <!-- Explore finances CTA -->
+      <div class="explore-finances-card">
+        <h3 class="text-xl font-bold mb-2">Want to explore your broader finances?</h3>
+        <p class="text-blue-100 text-sm mb-4">See how different scenarios affect your overall financial picture, from stamp duty savings to overpayment strategies.</p>
+        <button id="explore-finances-cta"
+          class="px-8 py-3 text-sm font-semibold text-blue-600 bg-white rounded-xl hover:bg-blue-50 transition-colors shadow-lg">
+          Explore My Finances →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- FINANCIAL OPTIMISATION TOOLS                          -->
+  <!-- ====================================================== -->
+  <div id="financial-tools" class="max-w-5xl mx-auto px-4 py-6">
+
+    <!-- Back button -->
+    <button id="back-to-results-btn" class="mb-6 flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Back to Mortgage Results
+    </button>
+
+    <!-- Tab navigation -->
+    <div class="financial-tab-bar">
+      <button class="financial-tab-btn active" data-tab="overpay-invest">Overpay vs Invest</button>
+      <button class="financial-tab-btn" data-tab="savings-goal">Savings Goal</button>
+      <button class="financial-tab-btn" data-tab="retirement">Retirement</button>
+    </div>
+
+    <!-- ======== TAB 1: Overpay vs Invest ======== -->
+    <div id="tab-overpay-invest" class="financial-tab-content active">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-1">Should you overpay your mortgage or invest?</h2>
+        <p class="text-gray-500 text-sm mb-6">Compare the impact of putting extra money towards your mortgage vs investing it.</p>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+          <div class="fi-input-group">
+            <label for="fi-monthly-extra" class="block text-sm font-semibold text-gray-700 mb-1">Monthly extra amount: <span id="fi-monthly-extra-val" class="text-blue-600">£200</span></label>
+            <input type="range" id="fi-monthly-extra" min="50" max="1000" value="200" step="25" />
+            <div class="flex justify-between text-xs text-gray-400 mt-1"><span>£50</span><span>£1,000</span></div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-invest-rate" class="block text-sm font-semibold text-gray-700 mb-1">Investment return rate: <span id="fi-invest-rate-val" class="text-blue-600">7%</span></label>
+            <input type="range" id="fi-invest-rate" min="3" max="12" value="7" step="0.5" />
+            <div class="flex justify-between text-xs text-gray-400 mt-1"><span>3%</span><span>12%</span></div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-invest-years" class="block text-sm font-semibold text-gray-700 mb-1">Investment period (years)</label>
+            <input type="number" id="fi-invest-years" min="1" max="40" value="25" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+          </div>
+          <div class="fi-input-group flex items-center gap-3 bg-gray-50 rounded-xl p-4">
+            <div>
+              <span class="text-sm font-semibold text-gray-700">Invest inside an ISA?</span>
+              <p class="text-xs text-gray-500 mt-0.5">Tax-free wrapper for your investments</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-auto">
+              <input type="checkbox" id="fi-isa-toggle" class="sr-only peer" checked />
+              <div class="w-11 h-6 bg-gray-300 peer-focus:ring-2 peer-focus:ring-blue-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="overpay-invest-results"></div>
+
+        <!-- Chart -->
+        <div class="fi-chart-container mt-6">
+          <canvas id="overpay-invest-chart"></canvas>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="fi-disclaimer">
+          This is not financial advice. Overpaying gives guaranteed savings at your mortgage rate. Investing has higher potential but returns aren't guaranteed.
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== TAB 2: Savings Goal ======== -->
+    <div id="tab-savings-goal" class="financial-tab-content">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-1">Savings Goal Planner</h2>
+        <p class="text-gray-500 text-sm mb-6">Plan your savings for a home deposit or any financial goal.</p>
+
+        <!-- Mode toggle -->
+        <div class="fi-mode-toggle flex gap-2 mb-6">
+          <button class="fi-mode-btn active px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium transition-all" data-savings-mode="home">First Home Saver</button>
+          <button class="fi-mode-btn px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium transition-all" data-savings-mode="custom">Custom Goal</button>
+        </div>
+
+        <!-- First Home Saver mode -->
+        <div id="savings-mode-home">
+          <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="fi-input-group">
+              <label for="fi-target-property" class="block text-sm font-semibold text-gray-700 mb-1">Target property value</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="fi-target-property" value="300,000" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+              </div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-target-deposit-pct" class="block text-sm font-semibold text-gray-700 mb-1">Target deposit: <span id="fi-target-deposit-pct-val" class="text-blue-600">10%</span></label>
+              <input type="range" id="fi-target-deposit-pct" min="5" max="25" value="10" />
+              <div class="flex justify-between text-xs text-gray-400 mt-1"><span>5%</span><span>25%</span></div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-current-savings" class="block text-sm font-semibold text-gray-700 mb-1">Current savings</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="fi-current-savings" value="5,000" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+              </div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-monthly-saving" class="block text-sm font-semibold text-gray-700 mb-1">Monthly saving: <span id="fi-monthly-saving-val" class="text-blue-600">£500</span></label>
+              <input type="range" id="fi-monthly-saving" min="100" max="2000" value="500" step="50" />
+              <div class="flex justify-between text-xs text-gray-400 mt-1"><span>£100</span><span>£2,000</span></div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-savings-rate" class="block text-sm font-semibold text-gray-700 mb-1">Savings rate: <span id="fi-savings-rate-val" class="text-blue-600">4%</span></label>
+              <input type="range" id="fi-savings-rate" min="1" max="6" value="4" step="0.5" />
+              <div class="flex justify-between text-xs text-gray-400 mt-1"><span>1%</span><span>6%</span></div>
+            </div>
+            <div class="fi-input-group flex items-center gap-3 bg-gray-50 rounded-xl p-4">
+              <div>
+                <span class="text-sm font-semibold text-gray-700">Lifetime ISA?</span>
+                <p class="text-xs text-gray-500 mt-0.5">Adds 25% bonus on first £4,000/year (properties up to £450k)</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer ml-auto">
+                <input type="checkbox" id="fi-lisa-toggle" class="sr-only peer" />
+                <div class="w-11 h-6 bg-gray-300 peer-focus:ring-2 peer-focus:ring-blue-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <div id="savings-home-results"></div>
+          <div class="fi-chart-container mt-6">
+            <canvas id="savings-timeline-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Custom Goal mode -->
+        <div id="savings-mode-custom" class="hidden">
+          <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="fi-input-group">
+              <label for="fi-target-amount" class="block text-sm font-semibold text-gray-700 mb-1">Target amount</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="fi-target-amount" value="20,000" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+              </div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-current-savings-custom" class="block text-sm font-semibold text-gray-700 mb-1">Current savings</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+                <input type="text" id="fi-current-savings-custom" value="0" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+              </div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-monthly-saving-custom" class="block text-sm font-semibold text-gray-700 mb-1">Monthly saving: <span id="fi-monthly-saving-custom-val" class="text-blue-600">£500</span></label>
+              <input type="range" id="fi-monthly-saving-custom" min="100" max="2000" value="500" step="50" />
+              <div class="flex justify-between text-xs text-gray-400 mt-1"><span>£100</span><span>£2,000</span></div>
+            </div>
+            <div class="fi-input-group">
+              <label for="fi-savings-rate-custom" class="block text-sm font-semibold text-gray-700 mb-1">Interest rate: <span id="fi-savings-rate-custom-val" class="text-blue-600">4%</span></label>
+              <input type="range" id="fi-savings-rate-custom" min="1" max="6" value="4" step="0.5" />
+              <div class="flex justify-between text-xs text-gray-400 mt-1"><span>1%</span><span>6%</span></div>
+            </div>
+          </div>
+
+          <div id="savings-custom-results"></div>
+          <div class="fi-chart-container mt-6">
+            <canvas id="savings-custom-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== TAB 3: Retirement ======== -->
+    <div id="tab-retirement" class="financial-tab-content">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-1">What's Your Number?</h2>
+        <p class="text-gray-500 text-sm mb-6">Find out if you're on track for the retirement you want.</p>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+          <div class="fi-input-group">
+            <label for="fi-current-age" class="block text-sm font-semibold text-gray-700 mb-1">Current age</label>
+            <input type="number" id="fi-current-age" min="18" max="70" value="35" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-retirement-age" class="block text-sm font-semibold text-gray-700 mb-1">Target retirement age: <span id="fi-retirement-age-val" class="text-blue-600">67</span></label>
+            <input type="range" id="fi-retirement-age" min="55" max="70" value="67" />
+            <div class="flex justify-between text-xs text-gray-400 mt-1"><span>55</span><span>70</span></div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-current-pension" class="block text-sm font-semibold text-gray-700 mb-1">Current pension pot</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+              <input type="text" id="fi-current-pension" value="0" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+            </div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-pension-contribution" class="block text-sm font-semibold text-gray-700 mb-1">Monthly pension contribution</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+              <input type="text" id="fi-pension-contribution" value="300" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+            </div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-employer-match" class="block text-sm font-semibold text-gray-700 mb-1">Employer match: <span id="fi-employer-match-val" class="text-blue-600">3%</span></label>
+            <input type="range" id="fi-employer-match" min="0" max="10" value="3" step="0.5" />
+            <div class="flex justify-between text-xs text-gray-400 mt-1"><span>0%</span><span>10%</span></div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-return-rate" class="block text-sm font-semibold text-gray-700 mb-1">Expected return rate: <span id="fi-return-rate-val" class="text-blue-600">5%</span></label>
+            <input type="range" id="fi-return-rate" min="3" max="10" value="5" step="0.5" />
+            <div class="flex justify-between text-xs text-gray-400 mt-1"><span>3%</span><span>10%</span></div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-inflation-rate" class="block text-sm font-semibold text-gray-700 mb-1">Inflation rate: <span id="fi-inflation-rate-val" class="text-blue-600">2.5%</span></label>
+            <input type="range" id="fi-inflation-rate" min="1" max="5" value="2.5" step="0.5" />
+            <div class="flex justify-between text-xs text-gray-400 mt-1"><span>1%</span><span>5%</span></div>
+          </div>
+          <div class="fi-input-group">
+            <label for="fi-desired-income" class="block text-sm font-semibold text-gray-700 mb-1">Desired annual retirement income</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">£</span>
+              <input type="text" id="fi-desired-income" value="25,000" class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-lg font-medium" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="retirement-results"></div>
+
+        <!-- Chart -->
+        <div class="fi-chart-container mt-6">
+          <canvas id="retirement-chart"></canvas>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="fi-disclaimer">
+          This uses the 4% rule and simplified assumptions. Consider state pension (~£11,500/yr) and defined benefit schemes. This is not financial advice.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
   <!-- COMPARISON FLOATING BAR -->
   <!-- ====================================================== -->
   <div id="comparisonBar" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
@@ -812,7 +1234,7 @@
   <!-- ====================================================== -->
   <!-- NAVIGATION BUTTONS -->
   <!-- ====================================================== -->
-  <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-gray-200 z-20" id="wizardNav">
+  <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-gray-200 z-20" id="wizardNav" style="display:none;">
     <div class="max-w-3xl mx-auto px-4 py-4 flex justify-between">
       <button id="prevBtn" data-nav="prev" class="invisible px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
         ← Back

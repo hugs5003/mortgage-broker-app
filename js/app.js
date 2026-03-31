@@ -3,6 +3,10 @@
 // ============================================================
 
 const App = {
+  // Access gate
+  ACCESS_CODE: 'mortgage2026',
+  isAuthenticated: false,
+
   currentStep: 1,
   totalSteps: 4,
   comparisonDeals: [],
@@ -14,6 +18,19 @@ const App = {
   brokerToken: null,
   brokerHighlights: {},
   brokerResults: [],
+
+  // Financial tools state
+  activeFinancialTab: 'overpay-invest',
+  financialCharts: {},
+  activeSavingsMode: 'home',
+
+  // Share view state
+  isShareView: false,
+  shareToken: null,
+  shareSession: null,
+  shareHighlights: [],
+  originalShareData: null,
+  currentOverrides: {},
   apiBase: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:5000'
     : window.location.origin,
@@ -47,13 +64,93 @@ const App = {
   // Initialise the app
   // ----------------------------------------------------------
   init() {
+    // Share links bypass the gate entirely
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('share')) {
+      this.isAuthenticated = true;
+      this.unlockApp();
+      this.checkForShareLink();
+      return;
+    }
+
+    // Check if already authenticated this session
+    if (sessionStorage.getItem('mo_access') === 'granted') {
+      this.isAuthenticated = true;
+      this.showRoleChooser();
+      return;
+    }
+
+    // Show gate and bind its events
+    this.bindGateEvents();
+  },
+
+  // ----------------------------------------------------------
+  // Access gate
+  // ----------------------------------------------------------
+  bindGateEvents() {
+    const submitBtn = document.getElementById('access-submit-btn');
+    const input = document.getElementById('access-code-input');
+    if (submitBtn) submitBtn.addEventListener('click', () => this.checkAccessCode());
+    if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.checkAccessCode(); });
+  },
+
+  checkAccessCode() {
+    const input = document.getElementById('access-code-input');
+    const error = document.getElementById('access-error');
+    const code = input.value.trim();
+
+    if (code === this.ACCESS_CODE) {
+      this.isAuthenticated = true;
+      sessionStorage.setItem('mo_access', 'granted');
+      error.classList.add('hidden');
+      this.showRoleChooser();
+    } else {
+      error.classList.remove('hidden');
+      input.value = '';
+      input.focus();
+    }
+  },
+
+  // ----------------------------------------------------------
+  // Role chooser
+  // ----------------------------------------------------------
+  showRoleChooser() {
+    document.getElementById('access-gate').style.display = 'none';
+    document.getElementById('role-chooser').style.display = 'flex';
+
+    document.getElementById('choose-consumer').addEventListener('click', () => this.enterConsumerMode());
+    document.getElementById('choose-broker').addEventListener('click', () => this.enterBrokerMode());
+  },
+
+  enterConsumerMode() {
+    document.getElementById('role-chooser').style.display = 'none';
+    this.unlockApp();
     this.bindEvents();
-    this.bindBrokerEvents();
+    this.bindFinancialEvents();
     this.updateProgress();
     this.updateLTVDisplay();
     this.updateDepositPercentage();
     this.showStep(1);
     this.renderLearnPanel();
+  },
+
+  enterBrokerMode() {
+    document.getElementById('role-chooser').style.display = 'none';
+    this.unlockApp();
+    this.bindBrokerEvents();
+    this.renderLearnPanel();
+    this.showBrokerLogin();
+  },
+
+  unlockApp() {
+    const header = document.getElementById('app-header');
+    const progress = document.getElementById('progress-bar-container');
+    const main = document.getElementById('app-main');
+    const nav = document.getElementById('wizardNav');
+    if (header) header.style.display = '';
+    if (progress) progress.style.display = '';
+    if (main) main.style.display = '';
+    if (nav) nav.style.display = '';
   },
 
   // ----------------------------------------------------------
@@ -360,6 +457,10 @@ const App = {
 
     this.renderResults();
     this.renderSummaryPanel();
+
+    // Show financial tools CTA
+    const financialCta = document.getElementById('financial-cta');
+    if (financialCta) financialCta.classList.remove('hidden');
   },
 
   // ----------------------------------------------------------
@@ -827,7 +928,7 @@ const App = {
 
     const cols = this.comparisonDeals.length;
     let html = `
-      <div class="grid grid-cols-${cols} gap-4">
+      <div class="grid gap-4" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
         ${this.comparisonDeals
           .map(
             (r) => `
@@ -862,7 +963,7 @@ const App = {
 
   comparisonRow(label, values) {
     return `
-      <div class="grid grid-cols-${values.length + 1} gap-4 py-3 border-b border-gray-100">
+      <div class="grid gap-4 py-3 border-b border-gray-100" style="grid-template-columns: repeat(${values.length + 1}, minmax(0, 1fr))">
         <div class="text-sm font-medium text-gray-600">${label}</div>
         ${values.map((v) => `<div class="text-sm font-semibold text-gray-900 text-center">${v}</div>`).join("")}
       </div>`;
@@ -1152,7 +1253,7 @@ const App = {
   showBrokerLogin() {
     // Hide wizard, progress, results, nav
     document.querySelectorAll('.wizard-step').forEach((el) => el.classList.remove('active'));
-    const progressBar = document.querySelector('.max-w-3xl.mx-auto.px-4.py-6');
+    const progressBar = document.getElementById('progress-bar-container');
     if (progressBar) progressBar.style.display = 'none';
     const wizardNav = document.getElementById('wizardNav');
     if (wizardNav) wizardNav.style.display = 'none';
@@ -1162,7 +1263,7 @@ const App = {
 
   hideBrokerLogin() {
     document.getElementById('broker-login').style.display = 'none';
-    const progressBar = document.querySelector('.max-w-3xl.mx-auto.px-4.py-6');
+    const progressBar = document.getElementById('progress-bar-container');
     if (progressBar) progressBar.style.display = '';
     const wizardNav = document.getElementById('wizardNav');
     if (wizardNav) wizardNav.style.display = '';
@@ -1216,11 +1317,11 @@ const App = {
     document.getElementById('broker-login').style.display = 'none';
     document.getElementById('broker-dashboard').style.display = 'block';
     document.querySelectorAll('.wizard-step').forEach((el) => el.classList.remove('active'));
-    const progressBar = document.querySelector('.max-w-3xl.mx-auto.px-4.py-6');
+    const progressBar = document.getElementById('progress-bar-container');
     if (progressBar) progressBar.style.display = 'none';
     const wizardNav = document.getElementById('wizardNav');
     if (wizardNav) wizardNav.style.display = 'none';
-    const mainEl = document.querySelector('main');
+    const mainEl = document.getElementById('app-main');
     if (mainEl) mainEl.style.display = 'none';
 
     const nameEl = document.getElementById('broker-display-name');
@@ -1236,11 +1337,11 @@ const App = {
 
     document.getElementById('broker-dashboard').style.display = 'none';
     document.getElementById('broker-login').style.display = 'none';
-    const progressBar = document.querySelector('.max-w-3xl.mx-auto.px-4.py-6');
+    const progressBar = document.getElementById('progress-bar-container');
     if (progressBar) progressBar.style.display = '';
     const wizardNav = document.getElementById('wizardNav');
     if (wizardNav) wizardNav.style.display = '';
-    const mainEl = document.querySelector('main');
+    const mainEl = document.getElementById('app-main');
     if (mainEl) mainEl.style.display = '';
 
     this.currentStep = 1;
@@ -1551,6 +1652,861 @@ const App = {
       linkInput.select();
       document.execCommand('copy');
       this.showBrokerToast('Link copied!');
+    });
+  },
+
+  // ----------------------------------------------------------
+  // Share view — consumer opens broker's share link
+  // ----------------------------------------------------------
+  checkForShareLink() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('share');
+    if (token) {
+      this.isShareView = true;
+      this.shareToken = token;
+      this.loadShareView(token);
+    }
+  },
+
+  async loadShareView(token) {
+    // Hide wizard, progress bar, nav, broker sections
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+    const progressBar = document.getElementById('progress-bar-container');
+    if (progressBar) progressBar.style.display = 'none';
+    const wizardNav = document.getElementById('wizardNav');
+    if (wizardNav) wizardNav.style.display = 'none';
+    const mainEl = document.getElementById('app-main');
+    if (mainEl) mainEl.style.display = 'none';
+    document.getElementById('broker-login').style.display = 'none';
+    document.getElementById('broker-dashboard').style.display = 'none';
+
+    // Show share view with loading state
+    const shareView = document.getElementById('share-view');
+    shareView.style.display = 'block';
+
+    try {
+      const res = await fetch(this.apiBase + '/api/share/' + encodeURIComponent(token));
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        document.getElementById('share-results').innerHTML = `
+          <div class="text-center py-16">
+            <div class="text-6xl mb-4">🔗</div>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Link not found</h3>
+            <p class="text-gray-500">${err.error || 'This share link may have expired or is invalid.'}</p>
+          </div>`;
+        return;
+      }
+
+      const data = await res.json();
+      this.shareSession = data.session || data;
+      this.shareHighlights = data.highlights || this.shareSession.highlights || [];
+      this.originalShareData = JSON.parse(JSON.stringify(this.shareSession));
+      this.currentOverrides = {};
+
+      this.renderShareView();
+      this.bindShareEvents();
+    } catch (err) {
+      document.getElementById('share-results').innerHTML = `
+        <div class="text-center py-16">
+          <div class="text-6xl mb-4">⚠️</div>
+          <h3 class="text-xl font-semibold text-gray-700 mb-2">Could not load recommendation</h3>
+          <p class="text-gray-500">Please check your connection and try again.</p>
+        </div>`;
+    }
+  },
+
+  renderShareView() {
+    const session = this.shareSession;
+    const profile = session.clientProfile || session.client_profile || session;
+
+    // Broker name
+    const brokerNameEl = document.getElementById('share-broker-name');
+    if (brokerNameEl) {
+      brokerNameEl.textContent = session.brokerName || session.broker_name || 'Your Broker';
+    }
+
+    // Broker message
+    const notes = session.brokerNotes || session.broker_notes || session.notes || '';
+    const msgPanel = document.getElementById('share-broker-message');
+    const notesEl = document.getElementById('share-broker-notes');
+    if (notes && msgPanel && notesEl) {
+      notesEl.textContent = notes;
+      msgPanel.style.display = 'block';
+    } else if (msgPanel) {
+      msgPanel.style.display = 'none';
+    }
+
+    // Summary bar
+    const pv = profile.propertyValue || profile.property_value || 0;
+    const dep = profile.deposit || 0;
+    const loan = pv - dep;
+    const ltv = pv > 0 ? ((loan / pv) * 100) : 0;
+    const term = profile.termYears || profile.term_years || 25;
+
+    document.getElementById('share-property-value').textContent = MortgageCalc.formatCurrency(pv);
+    document.getElementById('share-loan-amount').textContent = MortgageCalc.formatCurrency(loan);
+    document.getElementById('share-ltv').textContent = ltv.toFixed(1) + '%';
+    document.getElementById('share-deposit').textContent = MortgageCalc.formatCurrency(dep);
+    document.getElementById('share-term').textContent = term + ' years';
+
+    // Populate what-if fields
+    document.getElementById('whatif-propertyValue').value = pv.toLocaleString();
+    document.getElementById('whatif-deposit').value = dep.toLocaleString();
+    document.getElementById('whatif-grossIncome').value = (profile.grossIncome || profile.gross_income || 55000).toLocaleString();
+    document.getElementById('whatif-termYears').value = term;
+    document.getElementById('whatif-monthlyOutgoings').value = (profile.monthlyOutgoings || profile.monthly_outgoings || 800).toLocaleString();
+
+    // Build user profile for calculation
+    const userProfile = this.buildShareProfile(profile);
+    const results = MortgageCalc.filterAndRankDeals(userProfile);
+
+    // Split into highlighted and other deals
+    const highlightMap = {};
+    if (Array.isArray(this.shareHighlights)) {
+      this.shareHighlights.forEach(h => {
+        const id = h.dealId || h.deal_id;
+        if (id) highlightMap[id] = h;
+      });
+    }
+
+    // Highlighted deals sorted by display_order
+    const highlightedResults = [];
+    const otherResults = [];
+
+    results.forEach(result => {
+      if (highlightMap[result.deal.id]) {
+        highlightedResults.push({ result, highlight: highlightMap[result.deal.id] });
+      } else {
+        otherResults.push(result);
+      }
+    });
+
+    // Sort highlighted by display_order
+    highlightedResults.sort((a, b) => {
+      const orderA = a.highlight.display_order || a.highlight.displayOrder || 0;
+      const orderB = b.highlight.display_order || b.highlight.displayOrder || 0;
+      return orderA - orderB;
+    });
+
+    // Render highlighted deals
+    const highlightContainer = document.getElementById('share-results');
+    highlightContainer.innerHTML = highlightedResults.map(({ result, highlight }) =>
+      this.renderShareDealCard(result, highlight)
+    ).join('');
+
+    // Render other deals
+    const otherHeader = document.getElementById('other-deals-header');
+    const otherContainer = document.getElementById('share-other-results');
+    if (otherResults.length > 0) {
+      otherHeader.style.display = 'block';
+      otherContainer.innerHTML = otherResults.map(result =>
+        this.renderShareDealCard(result, null)
+      ).join('');
+    } else {
+      otherHeader.style.display = 'none';
+      otherContainer.innerHTML = '';
+    }
+  },
+
+  buildShareProfile(profile) {
+    return {
+      propertyValue: profile.propertyValue || profile.property_value || 300000,
+      deposit: profile.deposit || 60000,
+      purchaseType: profile.purchaseType || profile.purchase_type || 'firstTime',
+      propertyType: profile.propertyType || profile.property_type || 'semiDetached',
+      leasehold: profile.leasehold || false,
+      grossIncome: profile.grossIncome || profile.gross_income || 55000,
+      jointApplication: profile.jointApplication || profile.joint_application || false,
+      secondIncome: profile.secondIncome || profile.second_income || 0,
+      employmentStatus: profile.employmentStatus || profile.employment_status || 'employed',
+      monthlyOutgoings: profile.monthlyOutgoings || profile.monthly_outgoings || 800,
+      creditProfile: profile.creditProfile || profile.credit_profile || 'good',
+      age: profile.age || 35,
+      termYears: profile.termYears || profile.term_years || 25,
+      priorities: profile.priorities || ['lowestMonthly'],
+      overpaymentPlans: profile.overpaymentPlans || profile.overpayment_plans || false,
+      overpaymentAmount: profile.overpaymentAmount || profile.overpayment_amount || 0,
+      movingWithin5Years: profile.movingWithin5Years || profile.moving_within_5_years || false,
+      riskTolerance: profile.riskTolerance || profile.risk_tolerance || 30,
+      savingsAmount: profile.savingsAmount || profile.savings_amount || 0,
+    };
+  },
+
+  renderShareDealCard(result, highlight) {
+    const { deal, typeInfo, breakdown, verdict, totalFees } = result;
+
+    let cardClass = 'share-deal-card';
+    let badgeHtml = '';
+    let commentHtml = '';
+
+    if (highlight) {
+      const hType = highlight.highlight_type || highlight.type || '';
+
+      if (hType === 'recommended' || hType === 'recommend') {
+        cardClass += ' highlight-recommended';
+        badgeHtml = '<span class="highlight-badge highlight-badge-recommended">Broker Recommended</span>';
+      } else if (hType === 'alternative') {
+        cardClass += ' highlight-alternative';
+        badgeHtml = '<span class="highlight-badge highlight-badge-alternative">Also Consider</span>';
+      } else if (hType === 'avoid') {
+        cardClass += ' highlight-avoid';
+        badgeHtml = '<span class="highlight-badge highlight-badge-avoid">Broker Advises Caution</span>';
+      }
+
+      const comment = highlight.broker_comment || highlight.comment || '';
+      if (comment) {
+        commentHtml = `<div class="broker-deal-comment">"${comment}"</div>`;
+      }
+    }
+
+    return `
+    <div class="${cardClass}" data-deal-id="${deal.id}">
+      ${badgeHtml ? `<div class="mb-3">${badgeHtml}${commentHtml}</div>` : ''}
+
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-gray-900">${deal.lender}</h3>
+          <p class="text-sm text-gray-500">${deal.dealName}</p>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold text-blue-600">${deal.rate}%</div>
+          <div class="text-xs text-gray-500">${typeInfo.name}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 mb-1">Monthly payment</div>
+          <div class="text-lg font-bold text-gray-900">${MortgageCalc.formatCurrency(breakdown.monthlyDeal)}</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 mb-1">Deal period cost</div>
+          <div class="text-lg font-bold text-gray-900">${MortgageCalc.formatCurrency(breakdown.totalDealPeriod)}</div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 mb-1">Total fees</div>
+          <div class="text-lg font-bold ${totalFees > 0 ? 'text-amber-600' : 'text-green-600'}">
+            ${totalFees > 0 ? MortgageCalc.formatCurrency(totalFees) : 'None'}
+          </div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3">
+          <div class="text-xs text-gray-500 mb-1">Total interest</div>
+          <div class="text-lg font-bold text-gray-900">${MortgageCalc.formatCurrency(breakdown.totalInterest)}</div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-4">
+        ${deal.features.map(f =>
+          `<span class="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">${f}</span>`
+        ).join('')}
+      </div>
+
+      <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
+        <div class="text-xs font-semibold text-amber-700 mb-1">In plain English</div>
+        <p class="text-sm text-amber-800">${verdict}</p>
+      </div>
+
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="text-xs font-semibold text-gray-600 mb-1">What happens when this deal ends?</div>
+        <p class="text-sm text-gray-700">
+          You'll move to ${deal.lender}'s SVR of ${deal.svr}%. Your monthly payment would rise to approximately
+          <strong>${MortgageCalc.formatCurrency(breakdown.monthlySVR)}</strong>
+          — that's <strong>${MortgageCalc.formatCurrency(breakdown.monthlySVR - breakdown.monthlyDeal)} more per month</strong>.
+        </p>
+      </div>
+    </div>`;
+  },
+
+  toggleWhatIfPanel() {
+    const panel = document.getElementById('whatif-panel');
+    const btn = document.getElementById('whatif-toggle-btn');
+    if (panel) {
+      panel.classList.toggle('open');
+      if (btn) {
+        btn.textContent = panel.classList.contains('open') ? 'Adjust Scenario ▴' : 'Adjust Scenario ▾';
+      }
+    }
+  },
+
+  applyWhatIf() {
+    const origProfile = (this.originalShareData.clientProfile || this.originalShareData.client_profile || this.originalShareData);
+
+    const parse = (id) => this.parseCurrency(document.getElementById(id)?.value || '0');
+
+    const fields = {
+      propertyValue: parse('whatif-propertyValue'),
+      deposit: parse('whatif-deposit'),
+      grossIncome: parse('whatif-grossIncome'),
+      termYears: parseInt(document.getElementById('whatif-termYears')?.value) || 25,
+      monthlyOutgoings: parse('whatif-monthlyOutgoings'),
+    };
+
+    // Determine which fields changed
+    this.currentOverrides = {};
+    const origValues = {
+      propertyValue: origProfile.propertyValue || origProfile.property_value || 0,
+      deposit: origProfile.deposit || 0,
+      grossIncome: origProfile.grossIncome || origProfile.gross_income || 55000,
+      termYears: origProfile.termYears || origProfile.term_years || 25,
+      monthlyOutgoings: origProfile.monthlyOutgoings || origProfile.monthly_outgoings || 800,
+    };
+
+    const fieldIds = ['whatif-propertyValue', 'whatif-deposit', 'whatif-grossIncome', 'whatif-termYears', 'whatif-monthlyOutgoings'];
+    const fieldKeys = ['propertyValue', 'deposit', 'grossIncome', 'termYears', 'monthlyOutgoings'];
+
+    fieldKeys.forEach((key, i) => {
+      const input = document.getElementById(fieldIds[i]);
+      if (fields[key] !== origValues[key]) {
+        this.currentOverrides[key] = fields[key];
+        if (input) input.classList.add('whatif-modified');
+      } else {
+        if (input) input.classList.remove('whatif-modified');
+      }
+    });
+
+    // Merge overrides into profile
+    const mergedProfile = { ...origProfile };
+    Object.keys(this.currentOverrides).forEach(key => {
+      mergedProfile[key] = this.currentOverrides[key];
+    });
+
+    // Update session temporarily for re-render
+    const sessionProfile = this.shareSession.clientProfile || this.shareSession.client_profile || this.shareSession;
+    Object.keys(fields).forEach(key => {
+      sessionProfile[key] = fields[key];
+    });
+
+    this.renderShareView();
+
+    // POST override to server (fire-and-forget)
+    if (Object.keys(this.currentOverrides).length > 0) {
+      fetch(this.apiBase + '/api/share/' + encodeURIComponent(this.shareToken) + '/override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ override_data: this.currentOverrides }),
+      }).catch(() => {});
+    }
+
+    // Re-apply whatif-modified classes after re-render
+    fieldKeys.forEach((key, i) => {
+      const input = document.getElementById(fieldIds[i]);
+      if (this.currentOverrides[key] !== undefined && input) {
+        input.classList.add('whatif-modified');
+      }
+    });
+  },
+
+  resetWhatIf() {
+    const origProfile = (this.originalShareData.clientProfile || this.originalShareData.client_profile || this.originalShareData);
+
+    // Restore session to original
+    this.shareSession = JSON.parse(JSON.stringify(this.originalShareData));
+    this.currentOverrides = {};
+
+    // Remove modified indicators
+    ['whatif-propertyValue', 'whatif-deposit', 'whatif-grossIncome', 'whatif-termYears', 'whatif-monthlyOutgoings'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.classList.remove('whatif-modified');
+    });
+
+    this.renderShareView();
+  },
+
+  bindShareEvents() {
+    const recalcBtn = document.getElementById('whatif-recalculate');
+    if (recalcBtn) recalcBtn.addEventListener('click', () => this.applyWhatIf());
+
+    const resetBtn = document.getElementById('whatif-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => this.resetWhatIf());
+
+    const exploreCta = document.getElementById('explore-finances-cta');
+    if (exploreCta) exploreCta.addEventListener('click', () => {
+      if (typeof this.showFinancialTools === 'function') {
+        this.showFinancialTools();
+      }
+    });
+  },
+
+  // ----------------------------------------------------------
+  // Financial Tools
+  // ----------------------------------------------------------
+  bindFinancialEvents() {
+    const exploreBtn = document.getElementById('explore-finances-btn');
+    if (exploreBtn) exploreBtn.addEventListener('click', () => this.showFinancialTools());
+
+    const backBtn = document.getElementById('back-to-results-btn');
+    if (backBtn) backBtn.addEventListener('click', () => this.backToResults());
+
+    // Tab buttons
+    document.querySelectorAll('.financial-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.switchFinancialTab(btn.dataset.tab));
+    });
+
+    // Savings mode toggle
+    document.querySelectorAll('.fi-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.fi-mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeSavingsMode = btn.dataset.savingsMode;
+        document.getElementById('savings-mode-home').classList.toggle('hidden', this.activeSavingsMode !== 'home');
+        document.getElementById('savings-mode-custom').classList.toggle('hidden', this.activeSavingsMode !== 'custom');
+        this.renderSavingsGoal();
+      });
+    });
+
+    // Slider value displays and re-render on change
+    const sliderBindings = [
+      { id: 'fi-monthly-extra', display: 'fi-monthly-extra-val', prefix: '£', suffix: '' },
+      { id: 'fi-invest-rate', display: 'fi-invest-rate-val', prefix: '', suffix: '%' },
+      { id: 'fi-target-deposit-pct', display: 'fi-target-deposit-pct-val', prefix: '', suffix: '%' },
+      { id: 'fi-monthly-saving', display: 'fi-monthly-saving-val', prefix: '£', suffix: '' },
+      { id: 'fi-savings-rate', display: 'fi-savings-rate-val', prefix: '', suffix: '%' },
+      { id: 'fi-monthly-saving-custom', display: 'fi-monthly-saving-custom-val', prefix: '£', suffix: '' },
+      { id: 'fi-savings-rate-custom', display: 'fi-savings-rate-custom-val', prefix: '', suffix: '%' },
+      { id: 'fi-retirement-age', display: 'fi-retirement-age-val', prefix: '', suffix: '' },
+      { id: 'fi-employer-match', display: 'fi-employer-match-val', prefix: '', suffix: '%' },
+      { id: 'fi-return-rate', display: 'fi-return-rate-val', prefix: '', suffix: '%' },
+      { id: 'fi-inflation-rate', display: 'fi-inflation-rate-val', prefix: '', suffix: '%' },
+    ];
+
+    sliderBindings.forEach(({ id, display, prefix, suffix }) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          const disp = document.getElementById(display);
+          if (disp) disp.textContent = prefix + el.value + suffix;
+          this.renderActiveFinancialTab();
+        });
+      }
+    });
+
+    // Non-slider inputs that also trigger re-render
+    const inputIds = [
+      'fi-invest-years', 'fi-isa-toggle',
+      'fi-target-property', 'fi-current-savings', 'fi-lisa-toggle',
+      'fi-target-amount', 'fi-current-savings-custom',
+      'fi-current-age', 'fi-current-pension', 'fi-pension-contribution', 'fi-desired-income'
+    ];
+    inputIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const evtType = (el.type === 'checkbox') ? 'change' : 'input';
+        el.addEventListener(evtType, () => this.renderActiveFinancialTab());
+      }
+    });
+  },
+
+  showFinancialTools() {
+    // Hide results / share view
+    document.getElementById('step-results').classList.remove('active');
+    const shareView = document.getElementById('share-view');
+    if (shareView) shareView.style.display = 'none';
+    document.getElementById('financial-tools').style.display = 'block';
+    const wizardNav = document.getElementById('wizardNav');
+    if (wizardNav) wizardNav.style.display = 'none';
+    const compBar = document.getElementById('comparisonBar');
+    if (compBar) compBar.classList.add('hidden');
+
+    // Pre-fill from user profile
+    this.prefillFinancialInputs();
+    this.renderActiveFinancialTab();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  backToResults() {
+    document.getElementById('financial-tools').style.display = 'none';
+    if (this.isShareView) {
+      const shareView = document.getElementById('share-view');
+      if (shareView) shareView.style.display = 'block';
+    } else {
+      document.getElementById('step-results').classList.add('active');
+    }
+    const wizardNav = document.getElementById('wizardNav');
+    if (wizardNav && !this.isShareView) wizardNav.style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  prefillFinancialInputs() {
+    const p = this.userProfile;
+
+    // Overpay tab
+    const investYears = document.getElementById('fi-invest-years');
+    if (investYears) investYears.value = p.termYears;
+    if (p.overpaymentAmount > 0) {
+      const extra = document.getElementById('fi-monthly-extra');
+      if (extra) {
+        extra.value = Math.min(1000, Math.max(50, p.overpaymentAmount));
+        const disp = document.getElementById('fi-monthly-extra-val');
+        if (disp) disp.textContent = '£' + extra.value;
+      }
+    }
+
+    // Savings tab
+    const targetProp = document.getElementById('fi-target-property');
+    if (targetProp) targetProp.value = p.propertyValue.toLocaleString();
+
+    // Retirement tab
+    const ageInput = document.getElementById('fi-current-age');
+    if (ageInput && p.age) ageInput.value = p.age;
+  },
+
+  switchFinancialTab(tabId) {
+    this.activeFinancialTab = tabId;
+    document.querySelectorAll('.financial-tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.financial-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    const tab = document.getElementById('tab-' + tabId);
+    if (tab) tab.classList.add('active');
+    this.renderActiveFinancialTab();
+  },
+
+  renderActiveFinancialTab() {
+    switch (this.activeFinancialTab) {
+      case 'overpay-invest': this.renderOverpayVsInvest(); break;
+      case 'savings-goal': this.renderSavingsGoal(); break;
+      case 'retirement': this.renderRetirement(); break;
+    }
+  },
+
+  renderOverpayVsInvest() {
+    const loan = this.userProfile.propertyValue - this.userProfile.deposit;
+    const bestDeal = this.results && this.results.length > 0 ? this.results[0] : null;
+    const mortgageRate = bestDeal ? bestDeal.deal.rate : 4.5;
+    const mortgageTerm = this.userProfile.termYears;
+
+    const monthlyExtra = parseFloat(document.getElementById('fi-monthly-extra')?.value) || 200;
+    const investRate = parseFloat(document.getElementById('fi-invest-rate')?.value) || 7;
+    const investYears = parseInt(document.getElementById('fi-invest-years')?.value) || mortgageTerm;
+    const isISA = document.getElementById('fi-isa-toggle')?.checked || false;
+
+    const result = FinancialCalc.overpayVsInvest(loan, mortgageRate, mortgageTerm, monthlyExtra, investRate, investYears);
+
+    // Tax note for non-ISA
+    let taxNote = '';
+    if (!isISA && result.investment.totalGrowth > 0) {
+      const isaResult = FinancialCalc.isaComparison(result.investment.totalContributed, investRate, investYears, false);
+      taxNote = '<p class="text-sm text-gray-500 mt-2">Estimated tax on gains (outside ISA): <span class="font-semibold text-amber-600">' + FinancialCalc.formatCurrency(isaResult.taxPaid) + '</span></p>';
+    }
+
+    const verdictClass = result.netBenefit > 0 ? 'fi-verdict-positive' : 'fi-verdict-negative';
+
+    const container = document.getElementById('overpay-invest-results');
+    if (container) {
+      container.innerHTML =
+        '<div class="fi-comparison-columns">' +
+          '<div class="fi-column-overpay">' +
+            '<div class="fi-column-header bg-green-50 rounded-t-xl px-5 py-3 border-b border-green-100">' +
+              '<h3 class="font-bold text-green-800">Overpay Mortgage</h3>' +
+            '</div>' +
+            '<div class="p-5 space-y-3">' +
+              '<div class="flex justify-between"><span class="text-sm text-gray-600">Interest saved</span><span class="text-sm font-bold text-green-700">' + FinancialCalc.formatCurrency(result.overpayment.interestSaved) + '</span></div>' +
+              '<div class="flex justify-between"><span class="text-sm text-gray-600">Years saved</span><span class="text-sm font-bold text-green-700">' + result.overpayment.yearsSaved.toFixed(1) + ' years</span></div>' +
+              '<div class="flex justify-between"><span class="text-sm text-gray-600">Total cost reduction</span><span class="text-sm font-bold text-green-700">' + FinancialCalc.formatCurrency(result.overpayment.totalPaidWithout - result.overpayment.totalPaidWithOverpay) + '</span></div>' +
+              '<div class="text-xs text-gray-500 pt-2 border-t border-gray-100">Guaranteed saving at ' + mortgageRate + '% mortgage rate</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="fi-column-invest">' +
+            '<div class="fi-column-header bg-blue-50 rounded-t-xl px-5 py-3 border-b border-blue-100">' +
+              '<h3 class="font-bold text-blue-800">Invest Instead</h3>' +
+            '</div>' +
+            '<div class="p-5 space-y-3">' +
+              '<div class="flex justify-between"><span class="text-sm text-gray-600">Projected pot value</span><span class="text-sm font-bold text-blue-700">' + FinancialCalc.formatCurrency(result.investment.finalValue) + '</span></div>' +
+              '<div class="flex justify-between"><span class="text-sm text-gray-600">Total contributed</span><span class="text-sm font-bold text-gray-700">' + FinancialCalc.formatCurrency(result.investment.totalContributed) + '</span></div>' +
+              '<div class="flex justify-between"><span class="text-sm text-gray-600">Total growth</span><span class="text-sm font-bold text-blue-700">' + FinancialCalc.formatCurrency(result.investment.totalGrowth) + '</span></div>' +
+              taxNote +
+              '<div class="text-xs text-gray-500 pt-2 border-t border-gray-100">Projected at ' + investRate + '% p.a. — not guaranteed' + (isISA ? ' (ISA: tax-free)' : '') + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="fi-verdict-box ' + verdictClass + '">' +
+          '<p class="text-lg font-bold">' + result.verdict + '</p>' +
+          '<p class="text-sm mt-2 opacity-80">Break-even investment return rate: ' + result.breakEvenRate.toFixed(1) + '%</p>' +
+        '</div>';
+    }
+
+    this.renderOverpayChart(result);
+  },
+
+  renderOverpayChart(result) {
+    const canvas = document.getElementById('overpay-invest-chart');
+    if (!canvas) return;
+    if (this.financialCharts.overpay) this.financialCharts.overpay.destroy();
+
+    this.financialCharts.overpay = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: ['Overpay Mortgage', 'Invest Instead'],
+        datasets: [
+          {
+            label: 'Saving / Growth (£)',
+            data: [Math.round(result.overpayment.interestSaved), Math.round(result.investment.totalGrowth)],
+            backgroundColor: ['rgba(34, 197, 94, 0.7)', 'rgba(59, 130, 246, 0.7)'],
+            borderRadius: 8,
+          },
+          {
+            label: 'Total Contributed (£)',
+            data: [
+              Math.round(result.overpayment.totalPaidWithOverpay - result.overpayment.totalPaidWithout + result.overpayment.interestSaved),
+              Math.round(result.investment.totalContributed)
+            ],
+            backgroundColor: ['rgba(34, 197, 94, 0.25)', 'rgba(59, 130, 246, 0.25)'],
+            borderRadius: 8,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '£' + v.toLocaleString(); } } },
+        },
+      },
+    });
+  },
+
+  renderSavingsGoal() {
+    if (this.activeSavingsMode === 'home') {
+      this.renderSavingsHome();
+    } else {
+      this.renderSavingsCustom();
+    }
+  },
+
+  renderSavingsHome() {
+    const targetProp = this.parseCurrency(document.getElementById('fi-target-property')?.value) || 300000;
+    const depositPct = parseFloat(document.getElementById('fi-target-deposit-pct')?.value) || 10;
+    const currentSavings = this.parseCurrency(document.getElementById('fi-current-savings')?.value) || 0;
+    const monthlySaving = parseFloat(document.getElementById('fi-monthly-saving')?.value) || 500;
+    const savingsRate = parseFloat(document.getElementById('fi-savings-rate')?.value) || 4;
+    const lisaOn = document.getElementById('fi-lisa-toggle')?.checked || false;
+
+    const result = FinancialCalc.firstHomeSavings(targetProp, depositPct, currentSavings, monthlySaving, savingsRate, lisaOn);
+
+    const container = document.getElementById('savings-home-results');
+    if (container) {
+      container.innerHTML =
+        '<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">' +
+          '<div class="bg-blue-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-blue-600 mb-1">Target deposit</div>' +
+            '<div class="text-xl font-bold text-blue-800">' + FinancialCalc.formatCurrency(result.targetDeposit) + '</div>' +
+          '</div>' +
+          '<div class="bg-green-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-green-600 mb-1">Time to reach</div>' +
+            '<div class="text-xl font-bold text-green-800">' + FinancialCalc.formatYearsMonths(result.monthsToTarget) + '</div>' +
+          '</div>' +
+          '<div class="bg-purple-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-purple-600 mb-1">Total contributed</div>' +
+            '<div class="text-xl font-bold text-purple-800">' + FinancialCalc.formatCurrency(result.timeline.totalContributed) + '</div>' +
+          '</div>' +
+          '<div class="bg-amber-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-amber-600 mb-1">Interest earned</div>' +
+            '<div class="text-xl font-bold text-amber-800">' + FinancialCalc.formatCurrency(result.timeline.interestEarned) + '</div>' +
+          '</div>' +
+        '</div>' +
+        (lisaOn
+          ? '<div class="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-4">' +
+              '<p class="text-sm font-semibold text-purple-800">Lifetime ISA bonus: ' + FinancialCalc.formatCurrency(result.withLISABonus) + '</p>' +
+              '<p class="text-xs text-purple-600 mt-1">This reduces the amount you need to save from your own funds.</p>' +
+            '</div>'
+          : '');
+    }
+
+    this.renderSavingsChart(result.timeline.monthByMonth, result.targetDeposit, 'savings-timeline-chart');
+  },
+
+  renderSavingsCustom() {
+    const targetAmount = this.parseCurrency(document.getElementById('fi-target-amount')?.value) || 20000;
+    const currentSavings = this.parseCurrency(document.getElementById('fi-current-savings-custom')?.value) || 0;
+    const monthlySaving = parseFloat(document.getElementById('fi-monthly-saving-custom')?.value) || 500;
+    const rate = parseFloat(document.getElementById('fi-savings-rate-custom')?.value) || 4;
+
+    const result = FinancialCalc.savingsTimeline(targetAmount, currentSavings, monthlySaving, rate);
+
+    const container = document.getElementById('savings-custom-results');
+    if (container) {
+      container.innerHTML =
+        '<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">' +
+          '<div class="bg-blue-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-blue-600 mb-1">Time to reach goal</div>' +
+            '<div class="text-xl font-bold text-blue-800">' + FinancialCalc.formatYearsMonths(result.monthsToTarget) + '</div>' +
+          '</div>' +
+          '<div class="bg-green-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-green-600 mb-1">Total contributed</div>' +
+            '<div class="text-xl font-bold text-green-800">' + FinancialCalc.formatCurrency(result.totalContributed) + '</div>' +
+          '</div>' +
+          '<div class="bg-amber-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-amber-600 mb-1">Interest earned</div>' +
+            '<div class="text-xl font-bold text-amber-800">' + FinancialCalc.formatCurrency(result.interestEarned) + '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    this.renderSavingsChart(result.monthByMonth, targetAmount, 'savings-custom-chart');
+  },
+
+  renderSavingsChart(monthByMonth, targetAmount, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !monthByMonth || monthByMonth.length === 0) return;
+
+    if (this.financialCharts[canvasId]) this.financialCharts[canvasId].destroy();
+
+    // Sample points to keep chart performant
+    const data = monthByMonth.length > 120
+      ? monthByMonth.filter(function(_, i) { return i % Math.ceil(monthByMonth.length / 120) === 0 || i === monthByMonth.length - 1; })
+      : monthByMonth;
+
+    this.financialCharts[canvasId] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: data.map(function(d) { return d.month <= 24 ? d.month + ' mo' : (d.month / 12).toFixed(1) + ' yr'; }),
+        datasets: [
+          {
+            label: 'Savings Balance',
+            data: data.map(function(d) { return Math.round(d.balance); }),
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+          },
+          {
+            label: 'Target',
+            data: data.map(function() { return targetAmount; }),
+            borderColor: 'rgba(239, 68, 68, 0.5)',
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '£' + v.toLocaleString(); } } },
+        },
+      },
+    });
+  },
+
+  renderRetirement() {
+    const currentAge = parseInt(document.getElementById('fi-current-age')?.value) || 35;
+    const retirementAge = parseInt(document.getElementById('fi-retirement-age')?.value) || 67;
+    const currentPension = this.parseCurrency(document.getElementById('fi-current-pension')?.value) || 0;
+    const monthlyContribution = this.parseCurrency(document.getElementById('fi-pension-contribution')?.value) || 300;
+    const employerMatchPct = parseFloat(document.getElementById('fi-employer-match')?.value) || 3;
+    const returnRate = parseFloat(document.getElementById('fi-return-rate')?.value) || 5;
+    const inflationRate = parseFloat(document.getElementById('fi-inflation-rate')?.value) || 2.5;
+    const desiredIncome = this.parseCurrency(document.getElementById('fi-desired-income')?.value) || 25000;
+
+    // Employer match as monthly amount
+    const employerMonthly = monthlyContribution * (employerMatchPct / 100);
+
+    const projection = FinancialCalc.retirementProjection(
+      currentAge, retirementAge, currentPension,
+      monthlyContribution, employerMonthly,
+      returnRate, inflationRate
+    );
+    const gap = FinancialCalc.retirementGap(desiredIncome, projection.projectedPot, 4);
+
+    const isOnTrack = gap.annualShortfall <= 0;
+
+    const container = document.getElementById('retirement-results');
+    if (container) {
+      container.innerHTML =
+        '<div class="text-center mb-6">' +
+          '<p class="text-sm text-gray-500 mb-1">Your projected pension pot</p>' +
+          '<div class="fi-big-number">' + FinancialCalc.formatCurrency(projection.projectedPot) + '</div>' +
+          '<p class="text-sm text-gray-500 mt-1">In today\'s money: ' + FinancialCalc.formatCurrency(projection.projectedRealPot) + '</p>' +
+        '</div>' +
+        '<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">' +
+          '<div class="bg-blue-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-blue-600 mb-1">Monthly income (4% rule)</div>' +
+            '<div class="text-xl font-bold text-blue-800">' + FinancialCalc.formatCurrency(projection.monthlyIncomeAt4Pct) + '/mo</div>' +
+          '</div>' +
+          '<div class="bg-blue-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-blue-600 mb-1">Annual income (4% rule)</div>' +
+            '<div class="text-xl font-bold text-blue-800">' + FinancialCalc.formatCurrency(projection.annualIncomeAt4Pct) + '/yr</div>' +
+          '</div>' +
+          '<div class="bg-gray-50 rounded-xl p-4 text-center">' +
+            '<div class="text-xs text-gray-500 mb-1">Years of income</div>' +
+            '<div class="text-xl font-bold text-gray-800">' + (gap.yearsOfIncomeAvailable === Infinity ? '∞' : gap.yearsOfIncomeAvailable.toFixed(1)) + ' yrs</div>' +
+          '</div>' +
+        '</div>' +
+        (isOnTrack
+          ? '<div class="fi-on-track">' +
+              '<div class="flex items-center gap-3">' +
+                '<span class="text-2xl">✅</span>' +
+                '<div>' +
+                  '<p class="font-bold text-green-800">You\'re on track!</p>' +
+                  '<p class="text-sm text-green-700">Your projected pot should provide ' + FinancialCalc.formatCurrency(projection.annualIncomeAt4Pct) + '/year, meeting your ' + FinancialCalc.formatCurrency(desiredIncome) + '/year target.</p>' +
+                '</div>' +
+              '</div>' +
+            '</div>'
+          : '<div class="fi-gap-warning">' +
+              '<div class="flex items-center gap-3">' +
+                '<span class="text-2xl">⚠️</span>' +
+                '<div>' +
+                  '<p class="font-bold text-amber-800">There\'s a gap to close</p>' +
+                  '<p class="text-sm text-amber-700">To reach ' + FinancialCalc.formatCurrency(desiredIncome) + '/year, you\'d need to save an extra <strong>' + FinancialCalc.formatCurrency(gap.monthlyExtraSavingNeeded) + '/month</strong>.</p>' +
+                  '<p class="text-xs text-amber-600 mt-1">Shortfall: ' + FinancialCalc.formatCurrency(gap.annualShortfall) + '/year</p>' +
+                '</div>' +
+              '</div>' +
+            '</div>');
+    }
+
+    this.renderRetirementChart(projection.yearByYear, desiredIncome / 0.04);
+  },
+
+  renderRetirementChart(yearByYear, targetPot) {
+    const canvas = document.getElementById('retirement-chart');
+    if (!canvas || !yearByYear || yearByYear.length === 0) return;
+    if (this.financialCharts.retirement) this.financialCharts.retirement.destroy();
+
+    this.financialCharts.retirement = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: yearByYear.map(function(d) { return 'Age ' + d.age; }),
+        datasets: [
+          {
+            label: 'Pension Pot',
+            data: yearByYear.map(function(d) { return Math.round(d.balance); }),
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+          },
+          {
+            label: 'Real Value (after inflation)',
+            data: yearByYear.map(function(d) { return Math.round(d.realValue); }),
+            borderColor: 'rgba(34, 197, 94, 0.8)',
+            backgroundColor: 'rgba(34, 197, 94, 0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+          },
+          {
+            label: 'Target Pot',
+            data: yearByYear.map(function() { return Math.round(targetPot); }),
+            borderColor: 'rgba(239, 68, 68, 0.5)',
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '£' + v.toLocaleString(); } } },
+        },
+      },
     });
   },
 

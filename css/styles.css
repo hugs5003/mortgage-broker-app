@@ -376,3 +376,358 @@ input[type="number"] {
   z-index: 100;
   animation: fadeIn 0.35s ease-in-out;
 }
+
+/* ============================================================
+   Share View Styles (consumer share link)
+   ============================================================ */
+
+#share-view {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.broker-message-card {
+  border-left: 4px solid #2563eb;
+  background: #eff6ff;
+  padding: 1.25rem 1.5rem;
+  border-radius: 0 0.75rem 0.75rem 0;
+  font-style: italic;
+  color: #1e40af;
+  line-height: 1.6;
+}
+
+.share-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 1.25rem 1.5rem;
+}
+
+.share-summary-bar > div {
+  flex: 1;
+  min-width: 100px;
+}
+
+#whatif-panel {
+  display: none;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-top: 0.75rem;
+}
+
+#whatif-panel.open {
+  display: block;
+}
+
+.whatif-modified {
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.whatif-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #92400e;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.whatif-toggle-btn:hover {
+  background: #fef3c7;
+}
+
+.share-deal-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.share-deal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+.share-deal-card.highlight-recommended {
+  border-left: 4px solid #10b981;
+}
+
+.share-deal-card.highlight-alternative {
+  border-left: 4px solid #f59e0b;
+}
+
+.share-deal-card.highlight-avoid {
+  border-left: 4px solid #ef4444;
+  opacity: 0.85;
+}
+
+.highlight-badge {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.highlight-badge-recommended {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.highlight-badge-alternative {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.highlight-badge-avoid {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.broker-deal-comment {
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.other-deals-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.other-deals-section h3 {
+  color: #6b7280;
+}
+
+.explore-finances-card {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+@media (max-width: 640px) {
+  .share-summary-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+/* ============================================================
+   Financial Optimisation Tools Styles
+   ============================================================ */
+
+#financial-tools {
+  display: none;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.financial-tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 2rem;
+}
+
+.financial-tab-btn {
+  padding: 0.75rem 1.25rem;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  margin-bottom: -2px;
+}
+
+.financial-tab-btn:hover {
+  color: #2563eb;
+}
+
+.financial-tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+}
+
+.financial-tab-content {
+  display: none;
+}
+
+.financial-tab-content.active {
+  display: block;
+  animation: fadeTabIn 0.3s ease;
+}
+
+@keyframes fadeTabIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   ACCESS GATE & ROLE CHOOSER
+   ======================================== */
+#access-gate {
+  animation: fadeIn 0.5s ease-out;
+}
+
+#access-code-input:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+#role-chooser {
+  animation: fadeIn 0.4s ease-out;
+}
+
+#choose-consumer,
+#choose-broker {
+  transition: all 0.2s ease;
+}
+
+#choose-consumer:hover,
+#choose-broker:hover {
+  transform: translateY(-2px);
+}
+
+.fi-comparison-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .fi-comparison-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fi-column-overpay {
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.fi-column-invest {
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.fi-verdict-box {
+  border-radius: 0.75rem;
+  text-align: center;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.fi-verdict-positive {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.fi-verdict-negative {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.fi-big-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1d4ed8;
+  line-height: 1.2;
+}
+
+.fi-gap-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1rem;
+}
+
+.fi-on-track {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1rem;
+}
+
+.fi-chart-container {
+  position: relative;
+  max-height: 350px;
+  margin-top: 1.5rem;
+}
+
+.fi-disclaimer {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  line-height: 1.5;
+}
+
+.fi-input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.fi-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fi-mode-btn.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.financial-cta-card {
+  background: linear-gradient(to right, #2563eb, #4338ca);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  color: white;
+  text-align: center;
+}
