@@ -1,7 +1,29 @@
 import axios from 'axios'
 import type { FeedbackSubmission, LeadSubmission, MortgageDeal, UserProfile } from '../types'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+function resolveApiBase() {
+  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+
+  if (configuredApiUrl) {
+    return configuredApiUrl.replace(/\/$/, '')
+  }
+
+  if (typeof window !== 'undefined') {
+    const isLocalHost =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+    if (isLocalHost) {
+      return 'http://localhost:5000'
+    }
+
+    console.warn('VITE_API_URL is not set. Falling back to same-origin requests.')
+    return window.location.origin
+  }
+
+  return 'http://localhost:5000'
+}
+
+const API_BASE = resolveApiBase()
 const USE_CLIENT_MOCK_DEALS = import.meta.env.VITE_USE_CLIENT_MOCK_DEALS === 'true'
 
 const api = axios.create({
