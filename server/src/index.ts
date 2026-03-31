@@ -20,8 +20,25 @@ const port = process.env.PORT || 5000;
 
 // ===== Middleware =====
 app.use(helmet());
+
+// Build allowed origins list from CORS_ORIGIN (comma-separated) plus Vercel preview deployments
+const buildCorsOrigin = () => {
+  const raw = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  const staticOrigins = raw.split(',').map((o) => o.trim()).filter(Boolean);
+  return (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+    // Allow non-browser requests (e.g. server-to-server, curl, health checks)
+    if (!origin) return cb(null, true);
+    // Allow any Vercel preview deployment for Hugs5003's project
+    const vercelPreview = /^https:\/\/mortgage-broker-[a-z0-9]+-hugs5003s-projects\.vercel\.app$/i;
+    if (staticOrigins.includes(origin) || vercelPreview.test(origin)) {
+      return cb(null, true);
+    }
+    cb(new Error(`CORS: origin '${origin}' not allowed`));
+  };
+};
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: buildCorsOrigin(),
   credentials: true,
 }));
 app.use(express.json());
