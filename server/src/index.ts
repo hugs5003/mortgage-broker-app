@@ -49,6 +49,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Root endpoint for hosting platforms that link to the service base URL
+app.get('/', (req, res) => {
+  res.json({
+    service: 'Mortgage Broker API',
+    status: 'ok',
+    endpoints: {
+      health: '/health',
+      docs: '/api',
+    },
+  });
+});
+
 // API docs
 app.get('/api', (req, res) => {
   res.json({
