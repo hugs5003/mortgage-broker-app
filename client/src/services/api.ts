@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { FeedbackSubmission, LeadSubmission, MortgageDeal, UserProfile } from '../types'
+import type { BrokerHighlight, FeedbackSubmission, LeadSubmission, MortgageDeal, UserProfile } from '../types'
 
 function resolveApiBase() {
   const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
@@ -199,6 +199,53 @@ export const leadApi = {
 
 export const feedbackApi = {
   submit: (data: FeedbackSubmission) => api.post('/feedback', data).then((r) => r.data),
+}
+
+export const brokerApi = {
+  getSessions: () => api.get('/broker/sessions').then((r) => r.data),
+  createSession: (data: Record<string, unknown>) =>
+    api.post('/broker/sessions', data).then((r) => r.data),
+  updateSession: (id: string, data: Record<string, unknown>) =>
+    api.put(`/broker/sessions/${id}`, data).then((r) => r.data),
+  getSession: (id: string) => api.get(`/broker/sessions/${id}`).then((r) => r.data),
+  publishSession: (id: string) =>
+    api.post(`/broker/sessions/${id}/publish`).then((r) => r.data),
+  addHighlight: (
+    sessionId: string,
+    highlight: Pick<BrokerHighlight, 'dealId' | 'type' | 'comment'>
+  ) =>
+    api
+      .post(`/broker/sessions/${sessionId}/highlights`, {
+        dealId: highlight.dealId,
+        highlightType: highlight.type,
+        comment: highlight.comment,
+      })
+      .then((r) => r.data),
+  removeHighlight: (sessionId: string, dealId: string) =>
+    api.delete(`/broker/sessions/${sessionId}/highlights/${dealId}`).then((r) => r.data),
+}
+
+export const shareApi = {
+  getByToken: (token: string) => api.get(`/share/${token}`).then((r) => r.data),
+  applyOverride: (token: string, overrideData: Partial<UserProfile>) =>
+    api.post(`/share/${token}/override`, { overrideData }).then((r) => r.data),
+}
+
+export const financialApi = {
+  overpayVsInvest: (data: Record<string, number>) =>
+    api.post('/financial/overpay-vs-invest', data).then((r) => r.data),
+  compoundGrowth: (data: Record<string, number | boolean>) =>
+    api.post('/financial/compound-growth', data).then((r) => r.data),
+  savingsTimeline: (data: Record<string, number>) =>
+    api.post('/financial/savings-timeline', data).then((r) => r.data),
+  retirementProjection: (data: Record<string, number>) =>
+    api.post('/financial/retirement-projection', data).then((r) => r.data),
+  retirementGap: (data: Record<string, number>) =>
+    api.post('/financial/retirement-gap', data).then((r) => r.data),
+  firstHome: (data: Record<string, number>) =>
+    api.post('/financial/first-home', data).then((r) => r.data),
+  isaComparison: (data: Record<string, number>) =>
+    api.post('/financial/isa-comparison', data).then((r) => r.data),
 }
 
 export default api

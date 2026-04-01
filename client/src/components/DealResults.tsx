@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import { leadApi, feedbackApi } from '../services/api'
 import type { MortgageDeal } from '../types'
+import { DealComparison } from './DealComparison'
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-GB', {
@@ -12,7 +13,18 @@ function formatCurrency(n: number) {
 }
 
 export function DealResults() {
-  const { deals, utm, userProfile, leadSubmitted, setLeadSubmitted, feedbackSubmitted, setFeedbackSubmitted } = useStore()
+  const {
+    deals,
+    utm,
+    userProfile,
+    leadSubmitted,
+    setLeadSubmitted,
+    feedbackSubmitted,
+    setFeedbackSubmitted,
+    comparisonDealIds,
+    toggleComparisonDeal,
+    clearComparison,
+  } = useStore()
 
   const [email, setEmail] = useState('')
   const [consent, setConsent] = useState(false)
@@ -132,8 +144,35 @@ export function DealResults() {
               ))}
             </div>
           )}
+
+          <div className="mt-3">
+            <button
+              onClick={() => toggleComparisonDeal(deal.id)}
+              className={`text-xs px-2 py-1 rounded border ${
+                comparisonDealIds.includes(deal.id)
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'text-blue-700 border-blue-300 hover:bg-blue-50'
+              }`}
+            >
+              {comparisonDealIds.includes(deal.id) ? 'Selected for comparison' : 'Compare this deal'}
+            </button>
+          </div>
         </div>
       ))}
+
+      {comparisonDealIds.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800">Comparison Basket ({comparisonDealIds.length}/3)</h3>
+            <button onClick={clearComparison} className="text-xs text-gray-500 hover:underline">Clear</button>
+          </div>
+          <DealComparison
+            deals={deals}
+            selectedIds={comparisonDealIds}
+            onRemove={toggleComparisonDeal}
+          />
+        </div>
+      )}
 
       {/* ── Email capture ───────────────────────────────────────────── */}
       <div className="bg-blue-50 rounded-xl p-6 border border-blue-200 mt-2">

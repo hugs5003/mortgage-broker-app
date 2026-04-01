@@ -6,6 +6,20 @@ export interface UserProfile {
   termYears: number
   priorities: string[]
   riskTolerance: number
+  // Extended optional fields
+  age?: number
+  employmentStatus?: string
+  creditProfile?: string
+  jointApplication?: boolean
+  secondIncome?: number
+  monthlyOutgoings?: number
+  savingsAmount?: number
+  overpaymentPlans?: boolean
+  overpaymentAmount?: number
+  movingWithin5Years?: boolean
+  interestOnly?: boolean
+  propertyType?: string
+  leasehold?: boolean
 }
 
 export interface DealCalculation {
@@ -47,6 +61,53 @@ export interface LeadSubmission {
   utm_medium?: string | null
   utm_campaign?: string | null
   purchase_type?: string
+}
+
+export interface BrokerHighlight {
+  dealId: string
+  type: 'recommended' | 'alternative' | 'avoid'
+  comment?: string
+  displayOrder?: number
+}
+
+export interface BrokerSession {
+  [key: string]: unknown
+  id: string
+  clientName: string
+  clientEmail?: string
+  status: 'draft' | 'published' | 'viewed' | 'expired'
+  brokerNotes?: string
+  shareToken?: string
+  propertyValue?: number
+  deposit?: number
+  purchaseType?: string
+  propertyType?: string
+  leasehold?: boolean
+  grossIncome?: number
+  jointApplication?: boolean
+  secondIncome?: number
+  employmentStatus?: string
+  monthlyOutgoings?: number
+  creditProfile?: string
+  age?: number
+  termYears?: number
+  priorities?: string[]
+  overpaymentPlans?: boolean
+  overpaymentAmount?: number
+  movingWithin5Years?: boolean
+  riskTolerance?: number
+  savingsAmount?: number
+  interestOnly?: boolean
+  highlights?: BrokerHighlight[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ShareSessionData {
+  token: string
+  expiresAt?: string
+  session: BrokerSession
+  deals?: MortgageDeal[]
 }
 
 export interface FeedbackSubmission {

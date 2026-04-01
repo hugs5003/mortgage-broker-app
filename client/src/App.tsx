@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { MortgageWizard } from './components/MortgageWizard'
 import { AuthModal } from './components/AuthModal'
 import { useStore } from './store'
+import { BrokerDashboard } from './components/BrokerDashboard'
+import { FinancialTools } from './components/FinancialTools'
+import { ShareView } from './components/ShareView'
 
 type AnalyticsWindow = Window & {
   dataLayer?: unknown[][]
@@ -11,8 +14,9 @@ type AnalyticsWindow = Window & {
 }
 
 export default function App() {
-  const { user, logout, setUtm } = useStore()
+  const { user, logout, setUtm, mode, setMode, activePage, setActivePage } = useStore()
   const [showAuth, setShowAuth] = useState(false)
+  const [shareToken, setShareToken] = useState<string | null>(null)
 
   // Capture UTM parameters on first load so they travel with leads/feedback
   useEffect(() => {
@@ -22,6 +26,14 @@ export default function App() {
       medium: params.get('utm_medium'),
       campaign: params.get('utm_campaign'),
     })
+
+    const pathMatch = window.location.pathname.match(/^\/share\/([a-f0-9]{64})$/i)
+    const queryToken = params.get('share')
+    if (pathMatch?.[1]) {
+      setShareToken(pathMatch[1])
+    } else if (queryToken && /^[a-f0-9]{64}$/i.test(queryToken)) {
+      setShareToken(queryToken)
+    }
   }, [])
 
   useEffect(() => {
@@ -78,16 +90,51 @@ export default function App() {
     }
   }, [])
 
+  if (shareToken) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-5xl mx-auto px-4 py-4">
+            <h1 className="text-2xl font-bold text-blue-700">MortgageOptimiser</h1>
+            <p className="text-xs text-gray-500">Shared recommendation view</p>
+          </div>
+        </header>
+        <main className="max-w-5xl mx-auto px-4 py-8">
+          <ShareView token={shareToken} />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-blue-700">MortgageOptimiser</h1>
-            <p className="text-xs text-gray-400">Find your best mortgage deal</p>
+            <p className="text-xs text-gray-400">Consumer and broker decision platform</p>
           </div>
-          <div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMode('consumer')}
+              className={`px-3 py-2 rounded-lg text-sm ${mode === 'consumer' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            >
+              Consumer
+            </button>
+            <button
+              onClick={() => setMode('broker')}
+              className={`px-3 py-2 rounded-lg text-sm ${mode === 'broker' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+            >
+              Broker
+            </button>
+
+            <button
+              onClick={() => setActivePage(activePage === 'wizard' ? 'financial-tools' : 'wizard')}
+              className="px-3 py-2 rounded-lg text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
+            >
+              {activePage === 'wizard' ? 'Financial Tools' : 'Mortgage Wizard'}
+            </button>
+
             {user ? (
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">Hi, {user.name}</span>
@@ -103,27 +150,40 @@ export default function App() {
                 onClick={() => setShowAuth(true)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
               >
-                Sign In / Register
+                Sign In
               </button>
             )}
           </div>
         </div>
       </header>
 
-      {/* Hero banner — remortgage-focused for Instagram and search traffic */}
       <div className="bg-blue-700 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">Could you save money by remortgaging?</h2>
-          <p className="text-blue-100 text-base sm:text-lg">Find your best deal in 60 seconds — free, instant, personalised.</p>
+        <div className="max-w-5xl mx-auto px-4 py-8 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">Mortgage intelligence for consumers and brokers</h2>
+          <p className="text-blue-100 text-base sm:text-lg">Compare deals, run what-if scenarios, publish broker recommendations, and track better outcomes.</p>
         </div>
       </div>
 
-      {/* Main */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <MortgageWizard />
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {activePage === 'financial-tools' ? (
+          <FinancialTools />
+        ) : mode === 'broker' ? (
+          user ? (
+            <BrokerDashboard />
+          ) : (
+            <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900">Broker login required</h3>
+              <p className="text-sm text-gray-500 mt-1">Sign in with your broker account to create, tag, and publish client sessions.</p>
+              <button onClick={() => setShowAuth(true)} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                Sign in now
+              </button>
+            </div>
+          )
+        ) : (
+          <MortgageWizard />
+        )}
       </main>
 
-      {/* Auth Modal */}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   )

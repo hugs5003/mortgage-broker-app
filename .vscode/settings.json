@@ -6,6 +6,13 @@
         "uniq": true,
         "brew": true,
         "command": true,
-        "git -C '/Users/hs/Desktop/Mortgage": true
+        "git -C '/Users/hs/Desktop/Mortgage": true,
+        "npm run dev": true,
+        "npm install": true,
+        "mdfind": true,
+        "/usr/local/bin/node": true,
+        "/usr/local/bin/npm": true,
+        "./node_modules/.bin/tsc": true,
+        "./node_modules/.bin/vite": true
     }
 }

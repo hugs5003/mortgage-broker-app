@@ -34,6 +34,19 @@ interface AppStore {
   setFeedbackSubmitted: (v: boolean) => void
 }
 
+type AppMode = 'consumer' | 'broker'
+type ActivePage = 'wizard' | 'financial-tools'
+
+interface ExtendedStore extends AppStore {
+  mode: AppMode
+  setMode: (mode: AppMode) => void
+  activePage: ActivePage
+  setActivePage: (page: ActivePage) => void
+  comparisonDealIds: string[]
+  toggleComparisonDeal: (id: string) => void
+  clearComparison: () => void
+}
+
 const defaultProfile: UserProfile = {
   propertyValue: 300000,
   deposit: 60000,
@@ -44,7 +57,7 @@ const defaultProfile: UserProfile = {
   riskTolerance: 50,
 }
 
-export const useStore = create<AppStore>((set) => ({
+export const useStore = create<ExtendedStore>((set) => ({
   user: null,
   token: localStorage.getItem('token'),
   setUser: (user, token) => {
@@ -53,7 +66,7 @@ export const useStore = create<AppStore>((set) => ({
   },
   logout: () => {
     localStorage.removeItem('token')
-    set({ user: null, token: null })
+    set({ user: null, token: null, mode: 'consumer' })
   },
 
   step: 1,
@@ -76,4 +89,18 @@ export const useStore = create<AppStore>((set) => ({
   setLeadSubmitted: (v) => set({ leadSubmitted: v }),
   feedbackSubmitted: false,
   setFeedbackSubmitted: (v) => set({ feedbackSubmitted: v }),
+
+  mode: 'consumer',
+  setMode: (mode) => set({ mode }),
+  activePage: 'wizard',
+  setActivePage: (page) => set({ activePage: page }),
+  comparisonDealIds: [],
+  toggleComparisonDeal: (id) =>
+    set((state) => {
+      const already = state.comparisonDealIds.includes(id)
+      if (already) return { comparisonDealIds: state.comparisonDealIds.filter((x) => x !== id) }
+      if (state.comparisonDealIds.length >= 3) return state
+      return { comparisonDealIds: [...state.comparisonDealIds, id] }
+    }),
+  clearComparison: () => set({ comparisonDealIds: [] }),
 }))
