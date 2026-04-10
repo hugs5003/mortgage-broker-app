@@ -34,12 +34,12 @@ interface AppStore {
   setFeedbackSubmitted: (v: boolean) => void
 }
 
-type AppMode = 'consumer' | 'broker'
-type ActivePage = 'wizard' | 'financial-tools'
+type AppMode = 'consumer' | 'broker' | null
+type ActivePage = 'wizard' | 'financial-tools' | 'personal-finance'
 
 interface ExtendedStore extends AppStore {
   mode: AppMode
-  setMode: (mode: AppMode) => void
+  setMode: (mode: 'consumer' | 'broker') => void
   activePage: ActivePage
   setActivePage: (page: ActivePage) => void
   comparisonDealIds: string[]
@@ -66,7 +66,7 @@ export const useStore = create<ExtendedStore>((set) => ({
   },
   logout: () => {
     localStorage.removeItem('token')
-    set({ user: null, token: null, mode: 'consumer' })
+    set({ user: null, token: null })
   },
 
   step: 1,
@@ -90,7 +90,7 @@ export const useStore = create<ExtendedStore>((set) => ({
   feedbackSubmitted: false,
   setFeedbackSubmitted: (v) => set({ feedbackSubmitted: v }),
 
-  mode: 'consumer',
+  mode: null,
   setMode: (mode) => set({ mode }),
   activePage: 'wizard',
   setActivePage: (page) => set({ activePage: page }),

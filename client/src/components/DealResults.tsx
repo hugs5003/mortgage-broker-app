@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { leadApi, feedbackApi } from '../services/api'
+import { leadApi } from '../services/api'
 import type { MortgageDeal } from '../types'
 import { DealComparison } from './DealComparison'
+import { DealViz } from './DealViz'
+import { Tooltip } from './Tooltip'
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-GB', {
@@ -19,8 +21,6 @@ export function DealResults() {
     userProfile,
     leadSubmitted,
     setLeadSubmitted,
-    feedbackSubmitted,
-    setFeedbackSubmitted,
     comparisonDealIds,
     toggleComparisonDeal,
     clearComparison,
@@ -28,10 +28,12 @@ export function DealResults() {
 
   const [email, setEmail] = useState('')
   const [consent, setConsent] = useState(false)
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState('')
   const [leadLoading, setLeadLoading] = useState(false)
-  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [leadDone, setLeadDone] = useState(leadSubmitted)
+  const [expandedViz, setExpandedViz] = useState<string | null>(null)
+
+  const loanAmount = userProfile.propertyValue - userProfile.deposit
+  const termYears = userProfile.termYears || 25
 
   const handleLeadSubmit = async () => {
     if (!email || !consent) return
@@ -47,36 +49,11 @@ export function DealResults() {
         purchase_type: userProfile.purchaseType,
       })
       setLeadSubmitted(true)
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'lead_captured', { event_category: 'engagement', method: 'results_page' })
-      }
+      setLeadDone(true)
     } catch {
-      // Silently fail — do not interrupt the user experience
+      // Silent fail
     } finally {
       setLeadLoading(false)
-    }
-  }
-
-  const handleFeedbackSubmit = async () => {
-    if (rating === 0) return
-    setFeedbackLoading(true)
-    try {
-      await feedbackApi.submit({
-        rating,
-        comment: comment || undefined,
-        email: email || undefined,
-        purchase_type: userProfile.purchaseType,
-        utm_source: utm.source,
-        utm_campaign: utm.campaign,
-      })
-      setFeedbackSubmitted(true)
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'feedback_submitted', { event_category: 'engagement', value: rating })
-      }
-    } catch {
-      // Silently fail
-    } finally {
-      setFeedbackLoading(false)
     }
   }
 
@@ -90,9 +67,13 @@ export function DealResults() {
 
   return (
     <div className="space-y-4">
-      {deals.slice(0, 8).map((deal: MortgageDeal, i: number) => (
+      {deals.slice(0, 8).map((deal: MortgageDeal, i: number) => {
+        const dealId = deal.id || String(i)
+        const vizOpen = expandedViz === dealId
+        const inComparison = comparisonDealIds.includes(deal.id)
+        return (
         <div
-          key={deal.id || i}
+          key={dealId}
           className={`bg-white rounded-xl shadow-sm p-6 border-l-4 ${
             i === 0 ? 'border-green-500' : 'border-gray-200'
           }`}
@@ -110,13 +91,18 @@ export function DealResults() {
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-blue-600">{deal.rate}%</div>
-              <div className="text-xs text-gray-400">{deal.type?.replace(/_/g, ' ')}</div>
+              <div className="text-xs text-gray-400 flex items-center justify-end gap-0.5">
+                {deal.type?.replace(/_/g, ' ')}
+                <Tooltip term={deal.type?.includes('tracker') ? 'tracker_rate' : 'fixed_rate'} />
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
             <div>
-              <div className="text-xs text-gray-500">Monthly Payment</div>
+              <div className="text-xs text-gray-500 flex items-center gap-0.5">
+                Monthly Payment <Tooltip term="monthly_payment" label="Monthly Payment" />
+              </div>
               <div className="font-semibold text-gray-900">
                 {deal.calculation?.monthlyDeal
                   ? formatCurrency(deal.calculation.monthlyDeal) + '/mo'
@@ -128,7 +114,9 @@ export function DealResults() {
               <div className="font-semibold text-gray-900">{deal.fixedPeriod || 0} yrs</div>
             </div>
             <div>
-              <div className="text-xs text-gray-500">Arrangement Fee</div>
+              <div className="text-xs text-gray-500 flex items-center gap-0.5">
+                Arrangement Fee <Tooltip term="arrangement_fee" label="Arrangement Fee" />
+              </div>
               <div className="font-semibold text-gray-900">
                 {formatCurrency(deal.arrangementFee || 0)}
               </div>
@@ -145,26 +133,53 @@ export function DealResults() {
             </div>
           )}
 
-          <div className="mt-3">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => toggleComparisonDeal(deal.id)}
-              className={`text-xs px-2 py-1 rounded border ${
-                comparisonDealIds.includes(deal.id)
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                inComparison
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'text-blue-700 border-blue-300 hover:bg-blue-50'
               }`}
             >
-              {comparisonDealIds.includes(deal.id) ? 'Selected for comparison' : 'Compare this deal'}
+              {inComparison ? '✓ In comparison' : '+ Compare'}
+            </button>
+            <button
+              onClick={() => setExpandedViz(vizOpen ? null : dealId)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                vizOpen
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : 'text-purple-700 border-purple-300 hover:bg-purple-50'
+              }`}
+            >
+              {vizOpen ? 'Hide visualisation' : '📊 Visualise this deal'}
             </button>
           </div>
-        </div>
-      ))}
 
-      {comparisonDealIds.length > 0 && (
+          {vizOpen && (
+            <div className="mt-5 pt-5 border-t border-gray-100">
+              <DealViz
+                deal={deal}
+                propertyValue={userProfile.propertyValue}
+                loanAmount={loanAmount}
+                termYears={termYears}
+                colorIdx={i}
+              />
+            </div>
+          )}
+        </div>
+        )
+      })}
+
+      {comparisonDealIds.length >= 2 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800">Comparison Basket ({comparisonDealIds.length}/3)</h3>
-            <button onClick={clearComparison} className="text-xs text-gray-500 hover:underline">Clear</button>
+            <h3 className="text-sm font-semibold text-gray-800">
+              Comparison ({comparisonDealIds.length}/3)
+            </h3>
+            <button onClick={clearComparison} className="text-xs text-gray-500 hover:underline">
+              Clear
+            </button>
           </div>
           <DealComparison
             deals={deals}
@@ -174,98 +189,43 @@ export function DealResults() {
         </div>
       )}
 
-      {/* ── Email capture ───────────────────────────────────────────── */}
-      <div className="bg-blue-50 rounded-xl p-6 border border-blue-200 mt-2">
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Get these results by email</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          We’ll also remind you when a better deal becomes available — so you never miss a saving.
-        </p>
-
-        {leadSubmitted ? (
-          <div className="flex items-center gap-2 text-green-700 font-semibold">
-            <span>✓</span>
-            <span>Done! We’ll be in touch.</span>
-          </div>
-        ) : (
-          <div className="space-y-3">
+      {!leadDone ? (
+        <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
+          <h3 className="text-base font-semibold text-gray-900">Get these results by email</h3>
+          <p className="text-xs text-gray-500 mt-1 mb-4">
+            We'll remind you when a better deal becomes available.
+          </p>
+          <div className="flex gap-2 flex-wrap">
             <input
               type="email"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-            <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded text-blue-600 flex-shrink-0"
-              />
-              <span>
-                I agree to receive mortgage deal updates and reminders by email. I can unsubscribe
-                at any time.
-              </span>
-            </label>
             <button
               onClick={handleLeadSubmit}
               disabled={!email || !consent || leadLoading}
-              className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
             >
-              {leadLoading ? 'Saving…' : 'Send me my results →'}
+              {leadLoading ? 'Saving…' : 'Send me my results'}
             </button>
           </div>
-        )}
-      </div>
-
-      {/* ── Feedback ────────────────────────────────────────────────── */}
-      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Was this helpful?</h3>
-        <p className="text-sm text-gray-500 mb-4">Your feedback helps us improve for everyone.</p>
-
-        {feedbackSubmitted ? (
-          <div className="flex items-center gap-2 text-green-700 font-semibold">
-            <span>✓</span>
-            <span>Thank you!</span>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  aria-label={`Rate ${star} stars`}
-                  className={`text-3xl transition-transform hover:scale-110 ${
-                    star <= rating ? 'text-yellow-400' : 'text-gray-300'
-                  }`}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-
-            {rating > 0 && (
-              <>
-                <textarea
-                  placeholder="Any comments? (optional)"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                <button
-                  onClick={handleFeedbackSubmit}
-                  disabled={feedbackLoading}
-                  className="bg-gray-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 disabled:opacity-50 transition-colors"
-                >
-                  {feedbackLoading ? 'Sending…' : 'Submit feedback'}
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+          <label className="mt-3 flex items-start gap-2 text-xs text-gray-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 rounded"
+            />
+            I agree to receive mortgage deal updates by email. Unsubscribe any time.
+          </label>
+        </div>
+      ) : (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 font-medium">
+          ✓ Done — we'll keep you updated on better deals.
+        </div>
+      )}
     </div>
   )
 }

@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useStore } from '../store'
-import { dealsApi, feedbackApi, leadApi } from '../services/api'
+import { dealsApi } from '../services/api'
 import { DealResults } from './DealResults'
 import { EducationPanel } from './EducationPanel'
+import { Tooltip } from './Tooltip'
 
 export function MortgageWizard() {
   const {
@@ -15,19 +16,8 @@ export function MortgageWizard() {
     setLoading,
     error,
     setError,
-    utm,
-    leadSubmitted,
-    setLeadSubmitted,
-    feedbackSubmitted,
-    setFeedbackSubmitted,
   } = useStore()
 
-  const [leadEmail, setLeadEmail] = useState('')
-  const [leadConsent, setLeadConsent] = useState(false)
-  const [leadMessage, setLeadMessage] = useState<string | null>(null)
-  const [feedbackRating, setFeedbackRating] = useState(5)
-  const [feedbackComment, setFeedbackComment] = useState('')
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const loanAmount = userProfile.propertyValue - userProfile.deposit
@@ -47,51 +37,6 @@ export function MortgageWizard() {
       setError(msg)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleLeadSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setLeadMessage(null)
-    try {
-      await leadApi.submit({
-        email: leadEmail,
-        consent: leadConsent,
-        source: 'results_page',
-        utm_source: utm.source,
-        utm_medium: utm.medium,
-        utm_campaign: utm.campaign,
-        purchase_type: userProfile.purchaseType,
-      })
-      setLeadSubmitted(true)
-      setLeadMessage('Saved. We will use this to share updates and follow up.')
-    } catch (err) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Could not save your email right now.'
-      setLeadMessage(msg)
-    }
-  }
-
-  const handleFeedbackSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setFeedbackMessage(null)
-    try {
-      await feedbackApi.submit({
-        rating: feedbackRating,
-        comment: feedbackComment,
-        email: leadEmail || undefined,
-        purchase_type: userProfile.purchaseType,
-        utm_source: utm.source,
-        utm_campaign: utm.campaign,
-      })
-      setFeedbackSubmitted(true)
-      setFeedbackMessage('Thanks. Your feedback has been captured.')
-    } catch (err) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Could not save feedback right now.'
-      setFeedbackMessage(msg)
     }
   }
 
@@ -140,7 +85,9 @@ export function MortgageWizard() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Deposit</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              Deposit <Tooltip term="deposit" label="Deposit" />
+            </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">GBP</span>
               <input
@@ -151,7 +98,9 @@ export function MortgageWizard() {
               />
             </div>
             <p className="text-sm text-gray-500 mt-1">
-              LTV: <strong className="text-blue-600">{ltv}%</strong> - Loan: <strong>GBP {loanAmount.toLocaleString('en-GB')}</strong>
+              LTV: <strong className="text-blue-600">{ltv}%</strong>
+              <Tooltip term="ltv" label="Loan-to-Value (LTV)" />
+              {' '}— Loan: <strong>GBP {loanAmount.toLocaleString('en-GB')}</strong>
             </p>
           </div>
 
@@ -288,7 +237,9 @@ export function MortgageWizard() {
           <h2 className="text-2xl font-bold text-gray-900">Finances</h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Annual Gross Income</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              Annual Gross Income <Tooltip term="gross_income" label="Gross Income" />
+            </label>
             <input
               type="number"
               value={userProfile.grossIncome}
@@ -418,56 +369,6 @@ export function MortgageWizard() {
           </div>
 
           <DealResults />
-
-          <div className="grid md:grid-cols-2 gap-4 mt-6">
-            <form onSubmit={handleLeadSubmit} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Get updates</h3>
-              <p className="text-xs text-gray-500 mt-1">Save your email for follow-up and improved deal alerts.</p>
-              <input
-                type="email"
-                value={leadEmail}
-                onChange={(e) => setLeadEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                required
-                disabled={leadSubmitted}
-              />
-              <label className="mt-3 flex items-start gap-2 text-xs text-gray-600">
-                <input type="checkbox" checked={leadConsent} onChange={(e) => setLeadConsent(e.target.checked)} disabled={leadSubmitted} className="mt-0.5" />
-                I consent to be contacted about product updates.
-              </label>
-              <button type="submit" disabled={leadSubmitted} className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60">
-                {leadSubmitted ? 'Saved' : 'Save my email'}
-              </button>
-              {leadMessage && <p className="mt-2 text-xs text-gray-600">{leadMessage}</p>}
-            </form>
-
-            <form onSubmit={handleFeedbackSubmit} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Quick feedback</h3>
-              <p className="text-xs text-gray-500 mt-1">Tell us what was useful or confusing.</p>
-              <label className="block mt-3 text-xs text-gray-600">Rating (1-5)</label>
-              <input
-                type="number"
-                min={1}
-                max={5}
-                value={feedbackRating}
-                onChange={(e) => setFeedbackRating(Number(e.target.value) || 5)}
-                className="mt-1 w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                disabled={feedbackSubmitted}
-              />
-              <textarea
-                value={feedbackComment}
-                onChange={(e) => setFeedbackComment(e.target.value)}
-                placeholder="What should we improve?"
-                className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm min-h-[80px]"
-                disabled={feedbackSubmitted}
-              />
-              <button type="submit" disabled={feedbackSubmitted} className="mt-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black disabled:opacity-60">
-                {feedbackSubmitted ? 'Feedback sent' : 'Send feedback'}
-              </button>
-              {feedbackMessage && <p className="mt-2 text-xs text-gray-600">{feedbackMessage}</p>}
-            </form>
-          </div>
 
           <div className="mt-8">
             <EducationPanel />

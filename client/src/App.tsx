@@ -5,6 +5,10 @@ import { useStore } from './store'
 import { BrokerDashboard } from './components/BrokerDashboard'
 import { FinancialTools } from './components/FinancialTools'
 import { ShareView } from './components/ShareView'
+import { PasswordGate, isAccessGranted } from './components/PasswordGate'
+import { LandingPage } from './components/LandingPage'
+import { FeedbackBanner } from './components/FeedbackBanner'
+import { PersonalFinance } from './components/PersonalFinance'
 
 type AnalyticsWindow = Window & {
   dataLayer?: unknown[][]
@@ -17,6 +21,7 @@ export default function App() {
   const { user, logout, setUtm, mode, setMode, activePage, setActivePage } = useStore()
   const [showAuth, setShowAuth] = useState(false)
   const [shareToken, setShareToken] = useState<string | null>(null)
+  const [granted, setGranted] = useState(isAccessGranted)
 
   // Capture UTM parameters on first load so they travel with leads/feedback
   useEffect(() => {
@@ -90,6 +95,14 @@ export default function App() {
     }
   }, [])
 
+  if (!granted) {
+    return <PasswordGate onGranted={() => setGranted(true)} />
+  }
+
+  if (!mode) {
+    return <LandingPage />
+  }
+
   if (shareToken) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -109,12 +122,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center gap-4">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-blue-700">MortgageOptimiser</h1>
             <p className="text-xs text-gray-400">Consumer and broker decision platform</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setMode('consumer')}
               className={`px-3 py-2 rounded-lg text-sm ${mode === 'consumer' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
@@ -157,15 +170,26 @@ export default function App() {
         </div>
       </header>
 
-      <div className="bg-blue-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">Mortgage intelligence for consumers and brokers</h2>
-          <p className="text-blue-100 text-base sm:text-lg">Compare deals, run what-if scenarios, publish broker recommendations, and track better outcomes.</p>
+      {/* Rainbow "personal finances" banner */}
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white">
+        <div className="max-w-5xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold">Mortgage intelligence for consumers and brokers</h2>
+            <p className="text-purple-100 text-sm">Compare deals, run what-if scenarios, and track better outcomes.</p>
+          </div>
+          <button
+            onClick={() => setActivePage(activePage === 'personal-finance' ? 'wizard' : 'personal-finance')}
+            className="shrink-0 px-5 py-2.5 rounded-xl font-semibold text-sm bg-white text-purple-700 hover:bg-purple-50 shadow-md transition-all whitespace-nowrap"
+          >
+            ✨ Optimise my personal finances
+          </button>
         </div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {activePage === 'financial-tools' ? (
+        {activePage === 'personal-finance' ? (
+          <PersonalFinance />
+        ) : activePage === 'financial-tools' ? (
           <FinancialTools />
         ) : mode === 'broker' ? (
           user ? (
@@ -184,6 +208,7 @@ export default function App() {
         )}
       </main>
 
+      <FeedbackBanner />
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   )
