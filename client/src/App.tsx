@@ -122,39 +122,16 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center gap-4 flex-wrap">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-blue-700">MortgageOptimiser</h1>
             <p className="text-xs text-gray-400">Consumer and broker decision platform</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setMode('consumer')}
-              className={`px-3 py-2 rounded-lg text-sm ${mode === 'consumer' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-            >
-              Consumer
-            </button>
-            <button
-              onClick={() => setMode('broker')}
-              className={`px-3 py-2 rounded-lg text-sm ${mode === 'broker' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-            >
-              Broker
-            </button>
-
-            <button
-              onClick={() => setActivePage(activePage === 'wizard' ? 'financial-tools' : 'wizard')}
-              className="px-3 py-2 rounded-lg text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
-            >
-              {activePage === 'wizard' ? 'Financial Tools' : 'Mortgage Wizard'}
-            </button>
-
+          <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-600">Hi, {user.name}</span>
-                <button
-                  onClick={logout}
-                  className="text-sm text-blue-600 hover:underline"
-                >
+                <button onClick={logout} className="text-sm text-blue-600 hover:underline">
                   Logout
                 </button>
               </div>

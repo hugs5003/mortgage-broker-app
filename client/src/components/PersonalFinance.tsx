@@ -1,6 +1,15 @@
 import { useState } from 'react'
+import { Doughnut } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip as ChartTooltip,
+  Legend,
+} from 'chart.js'
 import { useStore } from '../store'
 import { Tooltip } from './Tooltip'
+
+ChartJS.register(ArcElement, ChartTooltip, Legend)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -102,46 +111,70 @@ const SAVINGS_RANGES = [
   { id: '50k+', label: 'Over £50k', value: 75000 },
 ]
 
-// ─── Balance sheet row ────────────────────────────────────────────────────────
+// ─── Visual stat card ─────────────────────────────────────────────────────────
 
-function BSRow({
-  icon,
-  label,
-  amount,
-  tooltip,
-  locked,
-  lockCta,
-  onCtaClick,
+const CARD_COLORS: Record<string, { bar: string; bg: string; text: string; dot: string }> = {
+  green:  { bar: 'bg-emerald-500', bg: 'bg-emerald-50',  text: 'text-emerald-700', dot: '#10b981' },
+  blue:   { bar: 'bg-blue-500',    bg: 'bg-blue-50',     text: 'text-blue-700',    dot: '#3b82f6' },
+  teal:   { bar: 'bg-teal-500',    bg: 'bg-teal-50',     text: 'text-teal-700',    dot: '#14b8a6' },
+  purple: { bar: 'bg-purple-500',  bg: 'bg-purple-50',   text: 'text-purple-700',  dot: '#8b5cf6' },
+  sky:    { bar: 'bg-sky-400',     bg: 'bg-sky-50',      text: 'text-sky-700',     dot: '#38bdf8' },
+  red:    { bar: 'bg-rose-500',    bg: 'bg-rose-50',     text: 'text-rose-700',    dot: '#f43f5e' },
+  orange: { bar: 'bg-orange-400',  bg: 'bg-orange-50',   text: 'text-orange-700',  dot: '#fb923c' },
+  gray:   { bar: 'bg-gray-300',    bg: 'bg-gray-50',     text: 'text-gray-400',    dot: '#d1d5db' },
+}
+
+function StatCard({
+  icon, label, amount, color, locked, lockCta, onCtaClick, tooltip, pct,
 }: {
   icon: string
   label: string
   amount?: number
-  tooltip?: React.ReactNode
+  color: keyof typeof CARD_COLORS
   locked?: boolean
   lockCta?: string
   onCtaClick?: () => void
+  tooltip?: React.ReactNode
+  pct?: number
 }) {
+  const c = CARD_COLORS[color]
   const fmt = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`
 
+  if (locked) {
+    return (
+      <button
+        onClick={onCtaClick}
+        className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50 w-full text-left group transition-colors"
+      >
+        <span className="text-xl opacity-40">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-gray-400 truncate">{label}</div>
+          <div className="text-sm text-blue-500 font-medium group-hover:text-blue-700">
+            {lockCta ?? 'Unlock →'}
+          </div>
+        </div>
+        <span className="text-gray-300 text-lg">🔒</span>
+      </button>
+    )
+  }
+
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0">
-      <div className="flex items-center gap-2 text-sm text-gray-700">
-        <span className="text-base">{icon}</span>
-        <span>{label}</span>
-        {tooltip}
-      </div>
-      {locked ? (
-        <button
-          onClick={onCtaClick}
-          className="text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full hover:bg-blue-100 font-medium"
-        >
-          {lockCta ?? 'Unlock →'}
-        </button>
-      ) : (
-        <span className="font-semibold text-gray-900 tabular-nums">
+    <div className={`${c.bg} rounded-xl p-3 flex items-center gap-3`}>
+      <div className={`w-1 self-stretch rounded-full ${c.bar}`} />
+      <span className="text-xl">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+          {label}{tooltip}
+        </div>
+        <div className={`font-bold text-base ${c.text} tabular-nums`}>
           {amount != null ? fmt(amount) : '—'}
-        </span>
-      )}
+        </div>
+        {pct != null && pct > 0 && (
+          <div className="mt-1 h-1 bg-white/60 rounded-full overflow-hidden">
+            <div className={`h-1 ${c.bar} rounded-full transition-all duration-700`} style={{ width: `${Math.min(pct, 100)}%` }} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -789,121 +822,198 @@ export function PersonalFinance() {
 
   const age = userProfile.age ?? 35
 
+  // Asset values for chart
+  const assetItems = [
+    { key: 'home',    label: 'Home equity',     value: equity ?? 0,                      color: 'green'  as const, locked: !unlocked.has('home') },
+    { key: 'savings', label: 'Savings',          value: fp.estimatedSavings ?? 0,          color: 'blue'   as const, locked: !unlocked.has('savings') },
+    { key: 'isa',     label: 'ISA',              value: fp.estimatedISA ?? 0,              color: 'teal'   as const, locked: !unlocked.has('savings') },
+    { key: 'current', label: 'Current account',  value: fp.estimatedCurrentAccount ?? 0,  color: 'sky'    as const, locked: !unlocked.has('savings') },
+    { key: 'pension', label: 'Pension',           value: fp.pensionBalance ?? 0,            color: 'purple' as const, locked: !unlocked.has('pension') },
+  ]
+  const unlockedAssets = assetItems.filter((a) => !a.locked && a.value > 0)
+  const hasChart = unlockedAssets.length >= 1
+
+  const chartData = {
+    labels: assetItems.map((a) => a.label),
+    datasets: [{
+      data: assetItems.map((a) => (a.locked || a.value === 0) ? (totalAssets > 0 ? 0 : 1) : a.value),
+      backgroundColor: assetItems.map((a) => a.locked ? '#e5e7eb' : CARD_COLORS[a.color].dot),
+      borderWidth: 2,
+      borderColor: '#fff',
+      hoverOffset: 6,
+    }],
+  }
+
+  const chartOptions = {
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: { label: string; raw: unknown }) =>
+            ` ${ctx.label}: £${Math.round(Number(ctx.raw)).toLocaleString('en-GB')}`,
+        },
+      },
+    },
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Balance sheet ─────────────────────────────────────────────────── */}
-      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-xl font-bold text-gray-900">Your Financial Picture</h2>
-          {completedCount > 0 && (
-            <span className="text-xs text-gray-500 font-medium">
-              {progress}% complete
-            </span>
-          )}
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+        {/* Hero net worth banner */}
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white px-6 py-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-xs font-medium uppercase tracking-widest opacity-70 mb-1 flex items-center gap-1">
+                Your Net Worth <Tooltip term="net_worth" label="Net Worth" />
+              </div>
+              {completedCount >= 2 ? (
+                <>
+                  <div className={`text-4xl sm:text-5xl font-bold tabular-nums ${netWorth < 0 ? 'text-rose-200' : ''}`}>
+                    {netWorth < 0 ? '-' : ''}£{Math.abs(Math.round(netWorth)).toLocaleString('en-GB')}
+                  </div>
+                  <div className="flex gap-5 mt-2 text-xs opacity-80">
+                    <span>Assets: £{Math.round(totalAssets).toLocaleString('en-GB')}</span>
+                    <span>Debts: £{Math.round(totalLiabilities).toLocaleString('en-GB')}</span>
+                  </div>
+                  {totalLiabilities > 0 && totalAssets > 0 && (
+                    <div className="mt-3 bg-white/20 rounded-full h-2 max-w-xs overflow-hidden">
+                      <div
+                        className="h-2 bg-white rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(100, (totalAssets / (totalAssets + totalLiabilities)) * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl font-bold opacity-40">£—</div>
+                  <div className="text-xs opacity-60 mt-1">Complete 2+ tools below to see your net worth</div>
+                </>
+              )}
+            </div>
+
+            {/* Progress ring */}
+            <div className="shrink-0 text-center">
+              <svg width="64" height="64" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="6" />
+                <circle
+                  cx="32" cy="32" r="26" fill="none"
+                  stroke="white" strokeWidth="6"
+                  strokeDasharray={`${2 * Math.PI * 26}`}
+                  strokeDashoffset={`${2 * Math.PI * 26 * (1 - completedCount / TABS.length)}`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 32 32)"
+                  style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                />
+                <text x="32" y="37" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">
+                  {progress}%
+                </text>
+              </svg>
+              <div className="text-xs opacity-70 mt-0.5">complete</div>
+            </div>
+          </div>
         </div>
 
-        {completedCount > 0 && (
-          <div className="w-full bg-gray-100 rounded-full h-1.5 mb-5">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-green-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        )}
-
-        {completedCount === 0 && (
-          <p className="text-sm text-gray-500 mb-5">
-            Complete a tool below to start building your balance sheet. We'll never ask for sensitive details — just enough to estimate.
-          </p>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Assets */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Assets</h3>
-            <BSRow
-              icon="🏠"
-              label="Home equity"
-              amount={equity}
-              tooltip={<Tooltip term="equity" label="Home Equity" />}
-              locked={!unlocked.has('home')}
-              lockCta="Add My Home →"
-              onCtaClick={() => scrollToTab('home')}
-            />
-            <BSRow
-              icon="💰"
-              label="Savings"
-              amount={fp.estimatedSavings}
-              locked={!unlocked.has('savings')}
-              lockCta="Add Savings →"
-              onCtaClick={() => scrollToTab('savings')}
-            />
-            <BSRow
-              icon="📈"
-              label="ISA"
-              amount={fp.estimatedISA}
-              tooltip={<Tooltip term="isa" label="ISA" />}
-              locked={!unlocked.has('savings')}
-              lockCta="Add Savings →"
-              onCtaClick={() => scrollToTab('savings')}
-            />
-            <BSRow
-              icon="💵"
-              label="Current account"
-              amount={fp.estimatedCurrentAccount}
-              locked={!unlocked.has('savings')}
-              lockCta="Add Savings →"
-              onCtaClick={() => scrollToTab('savings')}
-            />
-            <BSRow
-              icon="🏦"
-              label="Pension"
-              amount={fp.pensionBalance}
-              tooltip={<Tooltip term="pension" label="Pension" />}
-              locked={!unlocked.has('pension')}
-              lockCta="Add Pension →"
-              onCtaClick={() => scrollToTab('pension')}
-            />
-          </div>
-
-          {/* Liabilities + summary */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Liabilities</h3>
-            <BSRow
-              icon="🏦"
-              label="Mortgage balance"
-              amount={fp.estimatedMortgageBalance}
-              locked={!unlocked.has('home')}
-              lockCta="Add My Home →"
-              onCtaClick={() => scrollToTab('home')}
-            />
-            <BSRow
-              icon="💳"
-              label="Other debts"
-              amount={fp.totalDebt}
-              locked={!unlocked.has('debts')}
-              lockCta="Add Debts →"
-              onCtaClick={() => scrollToTab('debts')}
-            />
-
-            {completedCount >= 2 && (
-              <div className="mt-5 pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold text-gray-700 flex items-center gap-1">
-                    Net worth <Tooltip term="net_worth" label="Net Worth" />
-                  </span>
-                  <span className={`text-lg font-bold ${netWorth >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                    {netWorth >= 0 ? '' : '-'}£{Math.abs(Math.round(netWorth)).toLocaleString('en-GB')}
+        <div className="p-6 space-y-6">
+          {/* Chart + assets grid */}
+          {hasChart ? (
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              {/* Doughnut with centre label */}
+              <div className="shrink-0 mx-auto sm:mx-0 relative" style={{ width: 160, height: 160 }}>
+                <Doughnut data={chartData} options={chartOptions} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-xs text-gray-400">Assets</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    £{Math.round(totalAssets / 1000)}k
                   </span>
                 </div>
-                {fp.estimatedAnnualIncome && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    ~£{Math.round(fp.estimatedAnnualIncome / 12).toLocaleString('en-GB')}/mo estimated income
-                  </div>
-                )}
               </div>
-            )}
+
+              {/* Asset stat cards */}
+              <div className="flex-1 grid grid-cols-1 gap-2 w-full">
+                {assetItems.map((a) => (
+                  <StatCard
+                    key={a.key}
+                    icon={a.key === 'home' ? '🏠' : a.key === 'savings' ? '💰' : a.key === 'isa' ? '📈' : a.key === 'current' ? '💵' : '🏦'}
+                    label={a.label}
+                    amount={a.locked ? undefined : a.value || undefined}
+                    color={a.color}
+                    locked={a.locked}
+                    lockCta={a.key === 'pension' ? 'Add Pension →' : a.key === 'home' ? 'Add My Home →' : 'Add Savings →'}
+                    onCtaClick={() => scrollToTab(a.key === 'home' ? 'home' : a.key === 'pension' ? 'pension' : 'savings')}
+                    tooltip={a.key === 'home' ? <Tooltip term="equity" label="Home Equity" /> : a.key === 'isa' ? <Tooltip term="isa" label="ISA" /> : a.key === 'pension' ? <Tooltip term="pension" label="Pension" /> : undefined}
+                    pct={totalAssets > 0 && !a.locked && a.value > 0 ? (a.value / totalAssets) * 100 : undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Empty state */
+            <div>
+              <p className="text-sm text-gray-500 mb-4">
+                Complete a tool below to start building your financial portrait. We'll never ask for sensitive numbers — just enough to estimate.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {assetItems.map((a) => (
+                  <StatCard
+                    key={a.key}
+                    icon={a.key === 'home' ? '🏠' : a.key === 'savings' ? '💰' : a.key === 'isa' ? '📈' : a.key === 'current' ? '💵' : '🏦'}
+                    label={a.label}
+                    color={a.color}
+                    locked
+                    lockCta={a.key === 'pension' ? 'Add Pension →' : a.key === 'home' ? 'Add My Home →' : 'Add Savings →'}
+                    onCtaClick={() => scrollToTab(a.key === 'home' ? 'home' : a.key === 'pension' ? 'pension' : 'savings')}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Liabilities */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Liabilities</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <StatCard
+                icon="🏦"
+                label="Mortgage balance"
+                amount={fp.estimatedMortgageBalance}
+                color="red"
+                locked={!unlocked.has('home')}
+                lockCta="Add My Home →"
+                onCtaClick={() => scrollToTab('home')}
+              />
+              <StatCard
+                icon="💳"
+                label="Other debts"
+                amount={fp.totalDebt}
+                color="orange"
+                locked={!unlocked.has('debts')}
+                lockCta="Add Debts →"
+                onCtaClick={() => scrollToTab('debts')}
+              />
+            </div>
           </div>
+
+          {/* Income strip */}
+          {fp.estimatedAnnualIncome && (
+            <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+              <span className="text-xl">💼</span>
+              <div className="flex-1">
+                <div className="text-xs text-gray-500">Estimated income</div>
+                <div className="font-semibold text-gray-800">
+                  £{fp.estimatedAnnualIncome.toLocaleString('en-GB')}/yr &nbsp;·&nbsp; ~£{Math.round(fp.estimatedAnnualIncome / 12).toLocaleString('en-GB')}/mo
+                </div>
+              </div>
+              {!unlocked.has('income') && (
+                <button onClick={() => scrollToTab('income')} className="text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full hover:bg-blue-100">
+                  Unlock →
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
