@@ -1,15 +1,20 @@
 import { useState } from 'react'
-import { Doughnut } from 'react-chartjs-2'
+import { Doughnut, Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   ArcElement,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler,
   Tooltip as ChartTooltip,
   Legend,
 } from 'chart.js'
 import { useStore } from '../store'
 import { Tooltip } from './Tooltip'
 
-ChartJS.register(ArcElement, ChartTooltip, Legend)
+ChartJS.register(ArcElement, LineElement, PointElement, CategoryScale, LinearScale, Filler, ChartTooltip, Legend)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -768,7 +773,249 @@ const TABS: { id: TabId; icon: string; label: string; unlockKey: string }[] = [
   { id: 'outgoings', icon: '🧾', label: 'Outgoings', unlockKey: 'outgoings' },
 ]
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Hints engine ─────────────────────────────────────────────────────────────
+
+interface Tip {
+  id: string
+  icon: string
+  title: string
+  body: string
+  priority: number
+  color: 'blue' | 'amber' | 'green' | 'purple' | 'red'
+  cta?: string
+  ctaTab?: TabId
+}
+
+function generateTips(fp: FinanceProfile, unlocked: Set<string>): Tip[] {
+  const tips: Tip[] = []
+  const income = fp.estimatedAnnualIncome
+  const monthlyIncome = income ? income / 12 : null
+  const outgoings = fp.monthlyOutgoings
+  const liquidSavings = (fp.estimatedSavings ?? 0) + (fp.estimatedISA ?? 0) + (fp.estimatedCurrentAccount ?? 0)
+  const totalDebt = fp.totalDebt ?? 0
+  const pension = fp.pensionBalance ?? 0
+
+  if (unlocked.size < 2) return []
+
+  // 1. Emergency fund check
+  if (outgoings && liquidSavings < outgoings * 3) {
+    const shortfall = Math.round(outgoings * 3 - liquidSavings)
+    tips.push({
+      id: 'emergency_fund',
+      icon: '🛡️',
+      title: 'Build your emergency fund first',
+      body: `Financial experts recommend keeping 3 months of outgoings (£${Math.round(outgoings * 3).toLocaleString('en-GB')}) in easy-access savings before anything else. You're about £${shortfall.toLocaleString('en-GB')} short. This protects you if anything unexpected happens — job loss, car breakdown, boiler.`,
+      priority: 1,
+      color: 'amber',
+      cta: 'Add savings data →',
+      ctaTab: 'savings',
+    })
+  }
+
+  // 2. High savings in current account (not earning interest)
+  const currentAccount = fp.estimatedCurrentAccount ?? 0
+  const isa = fp.estimatedISA ?? 0
+  if (currentAccount > 5000 && isa === 0) {
+    const potentialInterest = Math.round(currentAccount * 0.04)
+    tips.push({
+      id: 'move_to_isa',
+      icon: '📈',
+      title: 'Move savings to a Cash ISA or easy-access account',
+      body: `You have ~£${currentAccount.toLocaleString('en-GB')} in your current account. Current accounts typically pay little or no interest. Moving this to a Cash ISA or high-interest savings account at ~4% could earn you ~£${potentialInterest.toLocaleString('en-GB')}/year in interest — completely tax-free in an ISA.`,
+      priority: 2,
+      color: 'blue',
+      cta: 'Learn about ISAs →',
+      ctaTab: 'savings',
+    })
+  }
+
+  // 3. Paying off high-interest debt when savings available
+  if (totalDebt > 0 && liquidSavings > totalDebt && fp.debts && !fp.debts.includes('student') && !fp.debts.every((d) => d === 'student')) {
+    tips.push({
+      id: 'pay_off_debt',
+      icon: '💡',
+      title: 'Consider clearing your debts with savings',
+      body: `Your savings (£${liquidSavings.toLocaleString('en-GB')}) exceed your debts (£${totalDebt.toLocaleString('en-GB')}). Credit card and personal loan interest (often 15–25% APR) costs far more than savings earn. Paying off expensive debt usually gives a better guaranteed "return" than keeping cash in savings.`,
+      priority: 1,
+      color: 'green',
+    })
+  }
+
+  // 4. Savings rate check
+  if (monthlyIncome && outgoings && unlocked.has('income') && unlocked.has('outgoings')) {
+    const savingsRate = (monthlyIncome - outgoings) / monthlyIncome
+    if (savingsRate < 0.1) {
+      const targetMonthly = Math.round(monthlyIncome * 0.1)
+      tips.push({
+        id: 'savings_rate',
+        icon: '💰',
+        title: 'Your savings rate is lower than recommended',
+        body: `Most financial advisers suggest saving at least 10% of your income. Based on your income and outgoings, you have roughly £${Math.round(monthlyIncome - outgoings).toLocaleString('en-GB')}/month left over. Aiming for £${targetMonthly.toLocaleString('en-GB')}/month saved would significantly improve your long-term financial position.`,
+        priority: 2,
+        color: 'amber',
+        cta: 'Review outgoings →',
+        ctaTab: 'outgoings',
+      })
+    }
+  }
+
+  // 5. Underfunded pension
+  if (income && unlocked.has('income')) {
+    const pensionTarget = income * 10 // rough 10x salary target at retirement
+    if (pension < pensionTarget * 0.3 && fp.yearsWorking && fp.yearsWorking > 5) {
+      const boost = Math.round(income * 0.03 / 12)
+      tips.push({
+        id: 'pension_boost',
+        icon: '🏦',
+        title: 'Your pension could benefit from a top-up',
+        body: `A commonly used rule of thumb: your pension pot at retirement should be roughly 10× your salary. Given your income, that's £${Math.round(pensionTarget).toLocaleString('en-GB')}. Increasing your pension contribution by just £${boost.toLocaleString('en-GB')}/month now — with tax relief added by HMRC — can make a significant difference over time.`,
+        priority: 3,
+        color: 'purple',
+        cta: 'Review pension →',
+        ctaTab: 'pension',
+      })
+    }
+  }
+
+  // 6. No pension at all
+  if (!unlocked.has('pension') && unlocked.has('income')) {
+    tips.push({
+      id: 'start_pension',
+      icon: '🌱',
+      title: 'Do you have a pension?',
+      body: `Pensions come with a significant tax perk: the government adds 20% on top of every contribution for basic rate taxpayers. If you're employed, your employer likely contributes too. The earlier you start, the more compound growth does the heavy lifting. Add your pension details to see where you stand.`,
+      priority: 3,
+      color: 'purple',
+      cta: 'Add pension →',
+      ctaTab: 'pension',
+    })
+  }
+
+  // 7. Mortgage rate above 5%
+  if (fp.mortgageRate && fp.mortgageRate > 5 && unlocked.has('home')) {
+    tips.push({
+      id: 'remortgage',
+      icon: '🏠',
+      title: 'You may be able to remortgage to a lower rate',
+      body: `Your current mortgage rate appears to be over 5%. Rates have been volatile but competitive deals exist. Even reducing by 0.5% on a typical mortgage saves £50–100/month. Use the Mortgage Wizard above to model a remortgage — it only takes 2 minutes.`,
+      priority: 2,
+      color: 'blue',
+    })
+  }
+
+  // Sort by priority, return top 3
+  return tips.sort((a, b) => a.priority - b.priority).slice(0, 3)
+}
+
+// ─── Forecast builder ─────────────────────────────────────────────────────────
+
+interface ForecastPoint {
+  year: number
+  netWorth: number
+  savings: number
+  equity: number
+  pension: number
+}
+
+function buildForecast(fp: FinanceProfile, currentNetWorth: number): ForecastPoint[] {
+  const income = fp.estimatedAnnualIncome ?? 0
+  const outgoings = (fp.monthlyOutgoings ?? 0) * 12
+  const years = 15
+
+  let savings = (fp.estimatedSavings ?? 0) + (fp.estimatedISA ?? 0) + (fp.estimatedCurrentAccount ?? 0)
+  let pension = fp.pensionBalance ?? 0
+  let propertyValue = fp.estimatedPropertyValue ?? 0
+  let mortgageBalance = fp.estimatedMortgageBalance ?? 0
+  let otherDebt = fp.totalDebt ?? 0
+
+  const monthlySurplus = Math.max(0, (income - outgoings) / 12)
+  const mr = (fp.mortgageRate ?? 4.5) / 100 / 12
+  const mortgageMonths = (fp.mortgageYearsRemaining ?? 20) * 12
+  const monthlyMortgage =
+    mortgageBalance > 0 && mr > 0
+      ? (mortgageBalance * mr * Math.pow(1 + mr, mortgageMonths)) / (Math.pow(1 + mr, mortgageMonths) - 1)
+      : mortgageBalance > 0
+      ? mortgageBalance / mortgageMonths
+      : 0
+
+  const points: ForecastPoint[] = [{
+    year: 0,
+    netWorth: currentNetWorth,
+    savings,
+    equity: propertyValue - mortgageBalance,
+    pension,
+  }]
+
+  for (let y = 1; y <= years; y++) {
+    // Savings: annual surplus + 3.5% interest on existing savings
+    savings = savings * 1.035 + monthlySurplus * 12
+    // Pension: 5% compound growth/year (employer+employee contributions assumed)
+    pension = pension * 1.05 + (income > 0 ? income * 0.08 : 0)
+    // Property: 2.5% HPI/year
+    propertyValue = propertyValue * 1.025
+    // Mortgage: 12 monthly repayments
+    for (let m = 0; m < 12; m++) {
+      if (mortgageBalance <= 0) break
+      const interest = mortgageBalance * mr
+      mortgageBalance = Math.max(0, mortgageBalance + interest - monthlyMortgage)
+    }
+    // Other debt: assume £200/month repayment
+    otherDebt = Math.max(0, otherDebt - 200 * 12)
+    const equity = propertyValue - mortgageBalance
+
+    points.push({
+      year: y,
+      netWorth: Math.round(savings + pension + equity - otherDebt),
+      savings: Math.round(savings),
+      equity: Math.round(equity),
+      pension: Math.round(pension),
+    })
+  }
+
+  return points
+}
+
+// ─── Tip card ─────────────────────────────────────────────────────────────────
+
+const TIP_STYLES = {
+  blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',  title: 'text-blue-900',   body: 'text-blue-800',   icon: 'bg-blue-100' },
+  amber:  { bg: 'bg-amber-50',  border: 'border-amber-100', title: 'text-amber-900',  body: 'text-amber-800',  icon: 'bg-amber-100' },
+  green:  { bg: 'bg-green-50',  border: 'border-green-100', title: 'text-green-900',  body: 'text-green-800',  icon: 'bg-green-100' },
+  purple: { bg: 'bg-purple-50', border: 'border-purple-100',title: 'text-purple-900', body: 'text-purple-800', icon: 'bg-purple-100' },
+  red:    { bg: 'bg-red-50',    border: 'border-red-100',   title: 'text-red-900',    body: 'text-red-800',    icon: 'bg-red-100' },
+}
+
+function TipCard({ tip, onCtaClick }: { tip: Tip; onCtaClick?: () => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const s = TIP_STYLES[tip.color]
+  return (
+    <div className={`${s.bg} border ${s.border} rounded-xl p-4`}>
+      <button className="w-full text-left" onClick={() => setExpanded((v) => !v)}>
+        <div className="flex items-start gap-3">
+          <span className={`${s.icon} rounded-lg p-1.5 text-base shrink-0`}>{tip.icon}</span>
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${s.title}`}>{tip.title}</p>
+            {!expanded && (
+              <p className={`text-xs ${s.body} mt-0.5 opacity-80`}>Tap to see why this matters →</p>
+            )}
+          </div>
+        </div>
+        {expanded && (
+          <p className={`text-xs ${s.body} mt-2 leading-relaxed`}>{tip.body}</p>
+        )}
+      </button>
+      {expanded && tip.cta && onCtaClick && (
+        <button
+          onClick={onCtaClick}
+          className="mt-2 text-xs font-medium underline opacity-80 hover:opacity-100 block"
+        >
+          {tip.cta}
+        </button>
+      )}
+    </div>
+  )
+}
+
 
 const INITIAL_FP: FinanceProfile = { unlocked: [] }
 
@@ -857,8 +1104,47 @@ export function PersonalFinance() {
     },
   }
 
+  const tips = generateTips(fp, unlocked)
+  const forecast = completedCount >= 2 ? buildForecast(fp, netWorth) : null
+
+  const forecastLabels = forecast?.map((p) => (p.year === 0 ? 'Now' : `${p.year}y`)) ?? []
+  const forecastData = {
+    labels: forecastLabels,
+    datasets: [
+      {
+        label: 'Net worth',
+        data: forecast?.map((p) => Math.round(p.netWorth / 1000)) ?? [],
+        borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139,92,246,0.12)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      },
+    ],
+  }
+  const forecastOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: { raw: unknown }) => ` £${(Number(ctx.raw)).toLocaleString('en-GB')}k`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: {
+        grid: { color: '#f3f4f6' },
+        ticks: { font: { size: 11 }, callback: (v: unknown) => `£${v}k` },
+      },
+    },
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ── Balance sheet ─────────────────────────────────────────────────── */}
       <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
@@ -1017,19 +1303,70 @@ export function PersonalFinance() {
         </div>
       </section>
 
+      {/* ── Hints & Tips ──────────────────────────────────────────────────── */}
+      {tips.length > 0 && (
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-lg">💡</span>
+            <h2 className="text-base font-bold text-gray-900">Personalised tips</h2>
+            <span className="ml-auto text-xs text-gray-400">{tips.length} suggestion{tips.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="space-y-3">
+            {tips.map((tip) => (
+              <TipCard
+                key={tip.id}
+                tip={tip}
+                onCtaClick={tip.ctaTab ? () => scrollToTab(tip.ctaTab!) : undefined}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-3">These are general suggestions, not regulated financial advice. See the disclaimer below.</p>
+        </section>
+      )}
+
+      {/* ── Net worth forecast ────────────────────────────────────────────── */}
+      {forecast && forecast.length > 1 && (
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">📈</span>
+            <h2 className="text-base font-bold text-gray-900">Net worth forecast</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            Based on your income, savings rate and outgoings — assuming ~3.5% return on savings, ~5% pension growth, and ~2.5% average house price growth. Illustrative only.
+          </p>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[5, 10, 15].map((y) => {
+              const pt = forecast.find((p) => p.year === y)
+              const diff = pt ? pt.netWorth - forecast[0].netWorth : 0
+              return pt ? (
+                <div key={y} className="bg-purple-50 rounded-xl p-3 text-center">
+                  <div className="text-xs text-gray-500">{y} years</div>
+                  <div className="font-bold text-purple-700 text-sm">£{Math.round(pt.netWorth / 1000)}k</div>
+                  <div className={`text-xs font-medium ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {diff >= 0 ? '+' : ''}£{Math.round(diff / 1000)}k
+                  </div>
+                </div>
+              ) : null
+            })}
+          </div>
+          <Line data={forecastData} options={forecastOptions} />
+          <p className="text-xs text-gray-400 mt-2 text-center">All projections are illustrative estimates, not financial advice.</p>
+        </section>
+      )}
+
       {/* ── Tool tabs ──────────────────────────────────────────────────────── */}
       <section id="pf-tools" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Build your picture</h2>
 
-        {/* Tab bar */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        {/* Tab bar — scrolls horizontally on mobile */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
           {TABS.map((t) => {
             const done = unlocked.has(t.unlockKey)
             return (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                   activeTab === t.id
                     ? 'bg-gray-900 text-white'
                     : done

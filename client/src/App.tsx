@@ -9,6 +9,7 @@ import { PasswordGate, isAccessGranted } from './components/PasswordGate'
 import { LandingPage } from './components/LandingPage'
 import { FeedbackBanner } from './components/FeedbackBanner'
 import { PersonalFinance } from './components/PersonalFinance'
+import { DisclaimerBanner } from './components/DisclaimerBanner'
 
 type AnalyticsWindow = Window & {
   dataLayer?: unknown[][]
@@ -149,14 +150,14 @@ export default function App() {
 
       {/* Rainbow "personal finances" banner */}
       <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold">Mortgage intelligence for consumers and brokers</h2>
-            <p className="text-purple-100 text-sm">Compare deals, run what-if scenarios, and track better outcomes.</p>
+        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-2xl font-bold leading-tight">Mortgage intelligence for consumers and brokers</h2>
+            <p className="text-purple-100 text-xs sm:text-sm mt-0.5">Compare deals, run what-if scenarios, and track better outcomes.</p>
           </div>
           <button
             onClick={() => setActivePage(activePage === 'personal-finance' ? 'wizard' : 'personal-finance')}
-            className="shrink-0 px-5 py-2.5 rounded-xl font-semibold text-sm bg-white text-purple-700 hover:bg-purple-50 shadow-md transition-all whitespace-nowrap"
+            className="shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-sm bg-white text-purple-700 hover:bg-purple-50 shadow-md transition-all"
           >
             ✨ Optimise my personal finances
           </button>
@@ -185,6 +186,7 @@ export default function App() {
         )}
       </main>
 
+      <DisclaimerBanner />
       <FeedbackBanner />
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
